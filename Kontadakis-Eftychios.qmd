@@ -1,0 +1,2641 @@
+---
+title: ""
+format:
+  pdf:
+    pdf-engine: xelatex
+    include-in-header:
+      text: |
+        \usepackage{fontspec}
+        \usepackage{polyglossia}
+        \setmainlanguage{english}
+        \setotherlanguage{greek}
+        \setmainfont{FreeSerif}
+        \setsansfont{FreeSans}
+        \setmonofont{FreeMono}
+        \newfontfamily\greekfont{FreeSerif}
+        \newfontfamily\greekfontsf{FreeSans}
+        \newfontfamily\greekfonttt{FreeMono}
+        \usepackage{graphicx}
+        \usepackage{tcolorbox}
+        \usepackage{amsthm}
+        \tcbuselibrary{breakable,skins}
+
+        % ===== COLOURS =====
+        \definecolor{myblue}{RGB}{0,60,120}
+        \definecolor{mygreen}{RGB}{0,100,50}
+        \definecolor{mypurple}{RGB}{80,0,130}
+        \definecolor{myorange}{RGB}{190,80,0}
+        \definecolor{mygray}{RGB}{240,242,245}
+        \definecolor{myred}{RGB}{160,0,30}
+
+        % ===== BOXES =====
+        \newtcolorbox{statementbox}[1][]{
+          breakable, enhanced,
+          colback=myblue!6!white,
+          colframe=myblue,
+          fonttitle=\bfseries\color{white},
+          coltitle=myblue,
+          arc=4pt, boxrule=1pt, #1
+        }
+        \newtcolorbox{hintbox}{
+          breakable, enhanced,
+          colback=myorange!7!white,
+          colframe=myorange,
+          fonttitle=\bfseries,
+          title={\textcolor{white}{Hint}},
+          arc=4pt, boxrule=0.8pt
+        }
+        \newtcolorbox{resultbox}{
+          breakable, enhanced,
+          colback=mygreen!7!white,
+          colframe=mygreen,
+          fonttitle=\bfseries,
+          arc=4pt, boxrule=1pt
+        }
+        \newtcolorbox{remarkbox}{
+          breakable, enhanced,
+          colback=mygray,
+          colframe=gray!60,
+          fonttitle=\bfseries,
+          arc=4pt, boxrule=0.6pt
+        }
+        \newtcolorbox{keybox}{
+          breakable, enhanced,
+          colback=mypurple!6!white,
+          colframe=mypurple,
+          fonttitle=\bfseries\color{white},
+          arc=4pt, boxrule=1pt
+        }
+        \newtcolorbox{conclusionbox}{
+          breakable, enhanced,
+          colback=mygreen!7!white,
+          colframe=mygreen!80!black,
+          fonttitle=\bfseries,
+          title={\textcolor{white!80!black}{Conclusion}},
+          arc=4pt, boxrule=1pt
+        }
+        \newtcolorbox{defbox}[1]{
+          breakable, enhanced,
+          colback=myred!5!white,
+          colframe=myred!80!black,
+          fonttitle=\bfseries\color{white!80!black},
+          title={Theory: #1},
+          arc=4pt, boxrule=0.8pt
+        }
+
+        % ===== THEOREMS =====
+        \newtheoremstyle{myplain}{8pt}{6pt}{\itshape}{}{\bfseries\color{myblue}}{.}{0.5em}{}
+        \theoremstyle{myplain}
+        \newtheorem{theorem}{Theorem}[section]
+        \newtheorem{lemma}[theorem]{Lemma}
+        \newtheorem{proposition}[theorem]{Proposition}
+        \newtheorem{corollary}[theorem]{Corollary}
+        \newtheoremstyle{mydef}{8pt}{6pt}{\normalfont}{}{\bfseries}{.}{0.5em}{}
+        \theoremstyle{mydef}
+        \newtheorem{definition}[theorem]{Definition}
+        \theoremstyle{remark}
+        \newtheorem*{remark}{\textit{Remark}}
+editor: visual
+---
+
+```{=latex}
+\begin{titlepage}
+  \centering
+  \includegraphics[width=0.2\textwidth]{emp.png}\\[0.4cm]
+  {\large NATIONAL TECHNICAL UNIVERSITY OF ATHENS\par}
+  \vspace{0.2cm}
+  {\normalsize SCHOOL OF APPLIED MATHEMATICS AND PHYSICAL SCIENCES\par}
+  \vspace{0.2cm}
+  {\small MSc PROGRAM: MATHEMATICAL MODELING \\
+ IN MODERN TECHNOLOGIES AND FINANCIAL ENGINEERING\par}
+  \vspace{1cm}
+  \rule{\linewidth}{0.5pt}
+  \vspace{0.8cm}
+  {\Huge\bfseries Bayesian Statistics and MCMC\par}
+  \vspace{0.5cm}
+  {\large Final Assignment 2026\par}
+  \vspace{0.8cm}
+  \rule{\linewidth}{0.5pt}
+  \vfill
+  {\large\bfseries Eftychios Kontadakis\par}
+  \vspace{0.15cm}
+  {\large \textbf{e-mail:} felkon0@gmail.com\par}
+  \vspace{0.15cm}
+  {\normalsize \textbf{ID:} 09325012\par}
+  \vspace{1.2cm}
+  {\normalsize\textbf{Professor:}\par}
+  \vspace{0.15cm}
+  {\normalsize Dimitrios Fouskakis\par}
+\end{titlepage}
+```
+
+# Exercise 1
+
+We begin by generating 50 observations for the first 10 of the 15 explanatory variables using a multivariate normal distribution with a zero mean vector and the covariance matrix equal to the identity matrix. This construction effectively produces 10 i.i.d.(independent and identically distributed) variables $X_j \sim N(0,1)$ for $j = 1,\ldots,10$, each of which has 50 i.i.d. observations. 
+
+\begin{resultbox}
+Thus, for every variable $X_j$ and every observation index $i$, we have
+$$
+X_{ij} \sim N(0,1), \qquad i = 1,\ldots,50,\; j = 1,\ldots,10.
+$$
+Or simply, all these observed values are independent and follow the same normal distribution. 
+\end{resultbox}
+
+To generate them we will also select a seed so that even though their generation is random, they are always the same every time we run the program, this ensures replicability and allows us to do effective debugging of the code.
+
+```{=latex}
+\small
+```
+
+```{r}
+library(MASS)
+set.seed(444) # Seed for replicability and debugging
+n <- 50
+mu <- rep(0, 10)          # this sets mean to 0 for every X_i
+Sigma <- diag(10)         # Covariance matrix = Identity Matrix
+
+X <- mvrnorm(n, mu, Sigma)
+
+# Table of means for testing
+data.frame(Variable = paste0("X", 1:ncol(X)),
+           Mean = round(colMeans(X), 4))
+
+```
+
+```{=latex}
+\normalsize
+```
+
+\begin{remarkbox}
+The mean for every variable is not exactly 0, but that is to be expected. They fluctuate around 0, the more values we generate the closer these means would get to 0.
+\end{remarkbox}
+
+\begin{resultbox}
+For the remaining explanatory variables, we simulate values according to the relation:
+
+$$
+X_{ij} \sim N(0.3X_{i1} + 0.5X_{i2} + 0.7X_{i3}+ 0.9X_{i4} + 1.5X_{i5},\, \sigma^2 = 1),
+$$
+$$
+j = 11,\ldots,15,\; i = 1,\ldots,50.
+$$
+These new variables are dependent on $X_1,...,X_5$, and they follow a different distribution.
+\end{resultbox}
+```{=latex}
+\small
+```
+
+```{r}
+for (j in 11:15) {
+  X <- cbind(X, 0.3*X[,1] + 0.5*X[,2] + 0.7*X[,3] + 0.9*X[,4] 
+             + 1.5*X[,5] + rnorm(50, 0, 1))
+}
+
+# Check means and variances of X11–X15
+means_new  <- round(colMeans(X[, 11:15]), 4)
+vars_new   <- round(apply(X[, 11:15], 2, var), 4)
+
+data.frame(
+  Variable = paste0("X", 11:15),
+  Mean     = means_new,
+  Variance = vars_new
+)
+
+```
+
+```{=latex}
+\normalsize
+```
+
+The linear combination of the independent $N(0,1)$ variables is itself normal, and adding an independent $N(0,1)$ error term preserves normality. Thus, although the noise variance is $1$, the total variance of $X_{ij}$ equals the variance of the linear combination plus $1$:\footnote{This is a direct result from $Var(X_1+X_2)=Var(X_1)+Var(X_2)+2Cov(X_1,X_2)$ for independent $X_1,X_2$ the $Cov(X_1,X_2)=0$ so $Var(X_1+X_2)=Var(X_1)+Var(X_2)$.}
+$$
+\sigma^2=0.3^2+0.5^2+0.7^2+0.9^2+1.5^2+1\approx4.89
+$$
+
+giving a final normal distribution with a larger overall spread($\approx 4.89$) but the exact same mean ($\approx 0$)\footnote{This is a result of $E[X_1+X_2]=E[X_1]+E[X_2]$, from the linearity of mean, no independency is needed.}. \begin{remarkbox}
+These values check out with the calculated ones found in the table above.
+\end{remarkbox}
+
+\newpage
+We move on to simulating the response variable using **some** of the 15 created variables.
+
+```{r}
+# Simulate response variable Y_i
+Y <- 4 + 2*X[,1] - X[,5] + 
+  1.5*X[,7]+ X[,11] + 0.5*X[,13] + rnorm(50, 0, 2.5)
+
+# Check mean and variance of Y_i
+mean_Y <- round(mean(Y), 4)
+var_Y  <- round(var(Y), 4)
+
+data.frame(Statistic = c("Mean", "Variance"),
+           Value = c(mean_Y, var_Y))
+
+```
+
+Since $Y_i$ is a linear combination of jointly normal predictors plus an independent
+$N(0,2.5^2)$ noise term, it follows that $Y_i$ is itself normally distributed. The mean is simple to calculate since every $X_{j}$ is normal with mean $0$, it follows that $E[Y_i]=4$, however since these $X_{j}$ are not independent anymore ($X_{11},X_{13}$ depend on $X_{1,..,5}$) we cannot calculate the variance by the sum of squares anymore. 
+
+By writing $Y_i$, as an inner product $Y_i=\mathbf{b}^\top \mathbf{X}_i+\varepsilon_i$ of the two vectors $\mathbf{X}_i = (X_{i1}, X_{i5}, X_{i7}, X_{i11}, X_{i13})^\top$ and $\mathbf{b} = (2, -1, 1.5, 1, 0.5)^\top$, with the addition of the independent(to that inner product) $\varepsilon_i$, we can write:
+$$
+\operatorname{Var}(Y_i)
+= \operatorname{Var}(\mathbf{b}^\top \mathbf{X}_i) + \operatorname{Var}(\varepsilon_i)
+$$
+By expanding $\operatorname{Var}(\mathbf{b}^\top \mathbf{X}_i)$ and recombining the terms we get:
+$$
+\operatorname{Var}(Y_i)
+= \mathbf{b}^\top \Sigma \mathbf{b} + 2.5^2,
+$$
+where $\Sigma=\Sigma_{ij} = \operatorname{Cov}(\mathbf{X}_i,\mathbf{X}_j)$\footnote{This is a matrix with the variances of each variable in the diagonal and every non-zero covariances on their respective non-diagonal element.}, $\mathbf{X}_i = (X_{i1}, X_{i5}, X_{i7}, X_{i11}, X_{i13})^\top$ and $\mathbf{b} = (2, -1, 1.5, 1, 0.5)^\top$.
+
+\begin{remarkbox}
+It is important to note that this expression gives a scalar(a singular value) for $Var(Y_i)$, since the product $ \mathbf{b}^\top \Sigma \mathbf{b}$ is also a scalar $[1\times 5]\cdot[5\times 5]\cdot[5\times 1]=[1\times1]$.
+\end{remarkbox}
+\newpage
+\begin{resultbox}
+We will now consider the multiple linear regression model
+
+$$
+Y = \beta_0 + \beta_1 X_1 + \dots + \beta_{15} X_{15} + \varepsilon
+\equiv X\beta + \varepsilon, \qquad
+\varepsilon \sim N(0, \sigma^2),
+$$
+
+where $X$ is the design matrix of dimension $50 \times 16$ and
+
+$$
+\beta = (\beta_0, \beta_1, \dots, \beta_{15})^\top.
+$$
+\end{resultbox}
+
+We assume the following conjugate prior distributions:
+
+$$
+\beta \mid \sigma^2 \sim N_{16}(0,\, \sigma^2 M^{-1}),
+$$
+and, 
+$$
+\sigma^2 \sim IG(0.0001,\, 0.0001),
+$$
+\begin{remarkbox}
+The choice of these exact prior for $\beta$ (and $\sigma^2$) is not random; it must depend on $\sigma^2$, since the uncertainty induced in the model by $\varepsilon$'s variance ultimately determines the uncertainty in $\beta$ itself. Additionally, because $\sigma^2$ follows an Inverse Gamma (IG) distribution and $\beta \mid \sigma^2$ follows a Normal (N) distribution, the joint prior $p(\beta, \sigma^2)$ is a Normal-Inverse Gamma distribution, which when combined with the Normal likelihood originating from $Y$, the posterior, given by Bayes's Theorem, is also a Normal-Inverse Gamma. Thus it is a conjugate prior, no matter how many times we update with new data, the posterior is always going to be a Normal-Inverse Gamma distribution, with the only difference being the updated parameters. For greater visualization using Bayes Theorem:
+
+$$
+\underbrace{p(Y \mid \beta, \sigma^2)}_{\text{Normal likelihood}}
+\times
+\underbrace{p(\beta, \sigma^2)}_{\text{Normal-IG prior}}
+\propto
+\underbrace{p(\beta, \sigma^2 \mid Y)}_{\text{Normal-IG posterior}}
+$$
+\end{remarkbox}
+\begin{remarkbox}
+Also note that all expressions implicitly condition on the observed 
+design matrix $X$, which we treat as fixed throughout as it contains already "observed" and thus locked values.
+\end{remarkbox}
+## A)
+
+\begin{statementbox}[title={Objective}]
+We are going to prove just that, by showing that the likelihood already resembles a Normal-Inverse Gamma if regarded as a function of the parameters $\sigma^2,\beta$.
+\end{statementbox}
+
+$Y$ is a random vector, and by regarding $\beta,\sigma^2$ and $X$ as known quantities, $Y \mid \beta, \sigma^2 \sim N(X\beta, \sigma^2 I_n)$, where $I_n$ is the $n \times n$ identity matrix encoding that all observations share 
+the same variance $\sigma^2$ and are independent of each other.  
+
+\begin{resultbox}
+
+Taking the multivariate Normal density formula:
+$$(2\pi)^{-k/2} \det(\Sigma)^{-1/2} \exp\left(-\frac{1}{2}(x-\mu)^\top 
+\Sigma^{-1}(x-\mu)\right)$$
+and substituting $k = n$, $\mu = X\beta$, $\Sigma = \sigma^2 I_n$ and $x = y$:
+
+\begin{itemize}
+  \item $\det(\sigma^2 I_n) = (\sigma^2)^n \implies \det(\Sigma)^{-1/2} = (\sigma^2)^{-n/2}$
+  \item $\Sigma^{-1} = (\sigma^2 I_n)^{-1} = \frac{1}{\sigma^2}I_n\footnote{This $\Sigma$ is a diagonal matrix with $\sigma^2$ on the diagonal elements so the inverse $\Sigma^{-1}$ is again a diagonal matrix but with the inverse diagonal elements.} \implies 
+  (y-X\beta)^\top\Sigma^{-1}(y-X\beta) = \frac{1}{\sigma^2}(y-X\beta)^\top(y-X\beta)$
+\end{itemize}
+
+and evaluating at the observed realization $y$ gives the likelihood:
+$$\ell(\beta, \sigma^2 \mid y) = (2\pi\sigma^2)^{-n/2} 
+\exp\left(-\frac{1}{2\sigma^2}(y - X\beta)^\top(y - X\beta)\right)$$
+where $(y - X\beta)^\top(y - X\beta) = \sum_{i=1}^n(y_i - x_i^\top\beta)^2$ 
+is the sum of squared residuals, a scalar, since 
+$I_n$ multiplying any vector leaves it unchanged.
+
+\end{resultbox}
+
+Our goal is to rewrite the exponent in a more revealing form. To do this we 
+introduce $\hat{\beta}$, the OLS estimator, the value of $\beta$ that best 
+fits the data with no prior information whatsoever. It is found by minimizing 
+the sum of squared residuals:
+
+$$Q(\beta) = (y - X\beta)^\top(y - X\beta) = \sum_{i=1}^n(y_i - x_i^\top\beta)^2$$
+
+We square the residuals rather than summing them directly because positive and 
+negative errors would otherwise cancel, and squaring penalizes larger errors 
+more heavily while remaining smooth and differentiable everywhere. Expanding:
+
+$$Q(\beta) = y^\top y - \beta^\top X^\top y-  y^\top X\beta + \beta^\top X^\top X\beta$$
+
+Taking the derivative with respect to $\beta$ and setting it to zero:\footnote{Here, for the derivation, we have used the derivative with respect to vectors. For vector derivatives, we have the following identities. If $A$ is an $n \times n$ symmetric matrix, and $B$ another matrix not necessarily symmetric , the following relations are true
+$$
+\frac{\partial}{\partial \mathbf{x}}\left(\tfrac12\,\mathbf{x}^\top A \mathbf{x}\right)
+= A\mathbf{x}, \qquad \frac{\partial}{\partial \mathbf{x}}(B^\top \mathbf{x}) = B, \qquad \frac{\partial}{\partial \mathbf{x}}(\mathbf{x}^\top B) = B.
+$$
+
+}
+
+$$
+\frac{\partial Q}{\partial \beta} = -2X^\top y + 2X^\top X\beta = 0\implies X^\top X\beta = X^\top y
+$$
+
+These are the normal equations. Solving for $\beta$, we inverse $X^\top X$, which can be done since the design matrix $X$ must have full column rank(no perfect multicollinearity), meaning its columns (the predictors) are linearly independent.
+
+$$\hat{\beta} = (X^\top X)^{-1}X^\top y$$
+
+This is the OLS estimator, i.e. the closest $\beta$ to the data we can find 
+without any prior information, and it is also the Maximum Likelihood 
+Estimator(MLE) under Normal errors (It maximizes the likelihood).
+
+Before introducing the $\hat\beta$ to the likelihood, we take the 
+normal equations:
+
+$$X^\top X\hat{\beta} = X^\top y \implies X^\top(y - X\hat{\beta}) = 0 
+\implies X^\top e = 0$$
+
+where $e = y - X\hat{\beta}$ are the OLS residuals. This says the residuals 
+are perpendicular to every column of $X$. This is another useful relation we will need for the proof.
+
+\begin{remarkbox}
+Geometrically, $X\hat{\beta}$ is the closest point to $y$ in the column space of $X$, and the shortest path 
+from a point to a subspace is always perpendicular to it (setting the derivative to zero and geometric orthogonality are the same statement). 
+\end{remarkbox}
+
+We now rewrite $(y - X\beta)^\top(y - X\beta)$ by adding and subtracting 
+$X\hat{\beta}$ to introduce it:
+
+$$y - X\beta = (y - X\hat{\beta}) + (X\hat{\beta} - X\beta) 
+= e - X(\beta - \hat{\beta})$$
+
+Substituting and expanding using 
+$(a - b)^\top(a - b) = a^\top a - 2a^\top b + b^\top b$\footnote{In this relation, we would normally have $(a - b)^\top(a - b) = a^\top a - a^\top b - b^\top a + b^\top b$ but since $a^\top b, b^\top a$ are both scalars (plain numbers), the transposed versions are exactly the same or $a^\top b=b^\top a$. By substituting $a,b$, this won't change as long as the dimensions still match which they do.}:
+
+$$[e - X(\beta - \hat{\beta})]^\top[e - X(\beta - \hat{\beta})]$$
+$$= e^\top e - 2e^\top X(\beta - \hat{\beta}) + 
+(\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta})$$
+
+The middle term vanishes by orthogonality since $e^\top X = 0$:
+
+$$e^\top X(\beta - \hat{\beta}) = \underbrace{(e^\top X)}_{=\ 0}
+(\beta - \hat{\beta}) = 0$$
+
+\newpage
+
+We are left with:
+
+$$e^\top e + (\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta})= \underbrace{(y - X\hat{\beta})^\top(y - X\hat{\beta})}_{s^2} + 
+(\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta})$$
+
+\begin{conclusionbox}
+Substituting back into the likelihood:
+
+$$\ell(\beta, \sigma^2 \mid y) = (2\pi\sigma^2)^{-n/2}
+\exp\left(-\frac{1}{2\sigma^2}\left[s^2 + 
+(\beta - \hat{\beta})^\top(X^\top X)(\beta - \hat{\beta})\right]\right)$$
+
+where $s^2 = (y - X\hat{\beta})^\top(y - X\hat{\beta})$ is the sum of squared 
+OLS residuals and $\hat{\beta} = (X^\top X)^{-1}X^\top y$ is the MLE.
+\end{conclusionbox}
+
+The split reveals two distinct roles:
+
+- $s^2$ depends only on the data, not on $\beta$.
+- $(\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta})$ is quadratic in 
+$\beta$, centered at $\hat{\beta}$, and gives the likelihood its 
+Normal shape in $\beta$
+
+The likelihood can be decomposed into two parts that reveal its 
+Normal-Inverse Gamma shape in $(\beta, \sigma^2)$:
+
+$$\ell(\beta, \sigma^2 \mid y) = 
+\underbrace{(2\pi\sigma^2)^{-n/2} 
+\exp\left(-\frac{s^2}{2\sigma^2}\right)}_{\text{Inverse Gamma shape in } \sigma^2}
+\times
+\underbrace{\exp\left(-\frac{(\beta - \hat{\beta})^\top 
+(X^\top X)(\beta - \hat{\beta})}{2\sigma^2}\right)}_{\text{Normal shape in } 
+\beta \mid \sigma^2}$$
+
+Matching against the Normal-Inverse Gamma density, the correspondence is:\footnote{ The Normal-Inverse Gamma, for reference, is: $$
+\frac{\sqrt{\lambda}}{\sqrt{2\pi\sigma^2}}
+\frac{\beta^{\alpha}}{\Gamma(\alpha)}
+\left(\frac{1}{\sigma^2}\right)^{\alpha + 1}
+\exp\!\left(
+-\frac{2\beta + \lambda(x - \mu)^2}{2\sigma^2}
+\right)
+$$
+}
+
+\begin{itemize}
+
+\item The Normal part has center $\mu \leftrightarrow \hat{\beta}$ and 
+precision $\lambda \leftrightarrow X^\top X$, meaning the likelihood is 
+centered at the OLS estimate $\hat{\beta}$ with uncertainty scaled by 
+$\sigma^2$
+
+\item The Inverse Gamma part has shape $\alpha \leftrightarrow n/2 - 1$ 
+and rate $\beta \leftrightarrow s^2/2$, where $s^2$ is the sum of squared 
+OLS residuals
+\end{itemize}
+
+\begin{remarkbox}
+All these confirm that the likelihood, viewed as a function of 
+$(\beta, \sigma^2)$, has the shape of an unnormalized Multivariate Normal-Inverse Gamma 
+, justifying the conjugate prior choice made earlier.
+\end{remarkbox}
+
+## B)
+
+\begin{statementbox}[title=Posterior Distributions]
+We are now going to prove that the conditional posterior for $\beta$:
+
+$$p(\beta \mid \sigma^2, y, X)$$
+
+is a multivariate Normal distribution of dimension 16:
+
+$$\beta \mid \sigma^2, y, X \sim N_{16}\left((M + X^\top X)^{-1}
+(X^\top X)\hat{\beta},\ \sigma^2(M + X^\top X)^{-1}\right)$$
+
+and that the marginal posterior for $\sigma^2$:
+
+$$p(\sigma^2 \mid y, X)$$
+
+is an Inverse Gamma distribution:
+
+$$\sigma^2 \mid y, X \sim IG\left(\frac{n}{2} + a,\ b + \frac{s^2}{2} + 
+\frac{\hat{\beta}^\top\left(M^{-1} + 
+(X^\top X)^{-1}\right)^{-1}\hat{\beta}}{2}\right)$$
+\end{statementbox}
+
+By Bayes theorem the joint posterior is proportional to the likelihood 
+times the prior, and the prior itself can be split in the conditional and marginal\footnote{Note that, 
+$$
+\begin{aligned}
+p(\beta, \sigma^2)= p(\beta \mid \sigma^2)\, p(\sigma^2)
+\text{, by the product rule of probability, } p(x,y)=p(y\mid x)p(x)\text{.}
+\end{aligned}
+$$
+}:
+
+$$p(\beta, \sigma^2 \mid y) \propto \ell(\beta, \sigma^2 \mid y) \times 
+p(\beta \mid \sigma^2) \times p(\sigma^2)$$
+
+Substituting each piece explicitly:
+
+$$\ell(\beta, \sigma^2 \mid y) \propto (\sigma^2)^{-n/2} 
+\exp\left(-\frac{1}{2\sigma^2}\left[s^2 + 
+(\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta})\right]\right)$$
+
+$$p(\beta \mid \sigma^2) \propto (\sigma^2)^{-16/2}
+\exp\left(-\frac{1}{2\sigma^2}\beta^\top M \beta\right)$$
+
+$$p(\sigma^2) \propto (\sigma^2)^{-(a+1)}\exp\left(-\frac{b}{\sigma^2}\right)$$
+\newpage
+
+Multiplying the three pieces together and collecting the powers of $\sigma^2$
+in front of the exponential:
+
+$$p(\beta, \sigma^2 \mid y) \propto 
+(\sigma^2)^{-n/2 - 16/2 - (a+1)}
+\exp\left(-\frac{1}{2\sigma^2}\left[s^2 + 
+(\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta}) + 
+\beta^\top M\beta + 2b\right]\right)$$
+
+We now focus on the terms inside the exponential that involve $\beta$:
+
+$$(\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta}) + \beta^\top M\beta$$
+
+Expanding $(\beta - \hat{\beta})^\top X^\top X(\beta - \hat{\beta})$:
+
+$$= \beta^\top X^\top X\beta - 2\hat{\beta}^\top X^\top X\beta + 
+\hat{\beta}^\top X^\top X\hat{\beta}$$
+
+So the full $\beta$ dependent part is:
+
+$$\beta^\top X^\top X\beta - 2\hat{\beta}^\top X^\top X\beta + 
+\hat{\beta}^\top X^\top X\hat{\beta} + \beta^\top M\beta$$
+
+$$= \beta^\top(M + X^\top X)\beta - 2\hat{\beta}^\top(X^\top X)\beta + 
+\hat{\beta}^\top X^\top X\hat{\beta}$$
+
+\begin{hintbox}
+We now apply the identity provided in the assignment:
+
+$$\beta^\top(M + X^\top X)\beta - 2\hat{\beta}^\top(X^\top X)\beta =$$
+
+$$= \left(\beta - (M + X^\top X)^{-1}(X^\top X)\hat{\beta}\right)^\top
+(M + X^\top X)
+\left(\beta - (M + X^\top X)^{-1}(X^\top X)\hat{\beta}\right)$$
+
+$$- \hat{\beta}^\top(X^\top X)(M + X^\top X)^{-1}(X^\top X)\hat{\beta}$$
+\end{hintbox}
+
+Denoting $\tilde{\beta} = (M + X^\top X)^{-1}(X^\top X)\hat{\beta}$ 
+for brevity, the exponent becomes:
+
+$$s^2 + (\beta - \tilde{\beta})^\top(M + X^\top X)(\beta - \tilde{\beta}) 
++ \hat{\beta}^\top X^\top X\hat{\beta} 
+- \hat{\beta}^\top(X^\top X)(M + X^\top X)^{-1}(X^\top X)\hat{\beta} + 2b$$
+
+\begin{hintbox}
+We will now apply the second identity provided in the assignment:
+
+$$(M + X^\top X)^{-1} = (X^\top X)^{-1} - 
+(X^\top X)^{-1}\left(M^{-1} + (X^\top X)^{-1}\right)^{-1}(X^\top X)^{-1}$$
+\end{hintbox}
+
+With that, we can simplify $\hat{\beta}^\top X^\top X\hat{\beta} - \hat{\beta}^\top(X^\top X)(M + X^\top X)^{-1}(X^\top X)\hat{\beta}$ by substituting into the second term:
+
+
+$$\hat{\beta}^\top(X^\top X)(M + X^\top X)^{-1}(X^\top X)\hat{\beta}$$
+$$= \hat{\beta}^\top(X^\top X)\left[(X^\top X)^{-1} - 
+(X^\top X)^{-1}\left(M^{-1} + 
+(X^\top X)^{-1}\right)^{-1}(X^\top X)^{-1}\right](X^\top X)\hat{\beta}$$
+$$= \hat{\beta}^\top X^\top X\hat{\beta} - 
+\hat{\beta}^\top\left(M^{-1} + (X^\top X)^{-1}\right)^{-1}\hat{\beta}$$
+
+Subtracting from $\hat{\beta}^\top X^\top X\hat{\beta}$:
+
+$$\hat{\beta}^\top X^\top X\hat{\beta} - 
+\hat{\beta}^\top(X^\top X)(M + X^\top X)^{-1}(X^\top X)\hat{\beta}$$
+$$= \hat{\beta}^\top X^\top X\hat{\beta} - 
+\hat{\beta}^\top X^\top X\hat{\beta} + 
+\hat{\beta}^\top\left(M^{-1} + (X^\top X)^{-1}\right)^{-1}\hat{\beta}$$
+$$= \hat{\beta}^\top\left(M^{-1} + (X^\top X)^{-1}\right)^{-1}\hat{\beta}$$
+
+So the full exponent simplifies to:
+
+$$s^2 + (\beta - \tilde{\beta})^\top(M + X^\top X)(\beta - \tilde{\beta}) + 
+\hat{\beta}^\top\left(M^{-1} + (X^\top X)^{-1}\right)^{-1}\hat{\beta} + 2b$$
+
+The full joint posterior is therefore:
+
+$$p(\beta, \sigma^2 \mid y) \propto (\sigma^2)^{-n/2-16/2-(a+1)}$$
+$$\times \exp\left(-\frac{1}{2\sigma^2}\left[
+(\beta - \tilde{\beta})^\top(M + X^\top X)(\beta - \tilde{\beta}) + 
+s^2 + \hat{\beta}^\top\left(M^{-1} + 
+(X^\top X)^{-1}\right)^{-1}\hat{\beta} + 2b
+\right]\right)$$
+
+This splits naturally into two parts:
+
+$$= \underbrace{\exp\left(-\frac{1}{2\sigma^2}
+(\beta - \tilde{\beta})^\top(M + X^\top X)
+(\beta - \tilde{\beta})\right)}_{\text{Normal shape in } \beta \mid \sigma^2}$$
+$$\times \underbrace{(\sigma^2)^{-n/2-16/2-(a+1)} 
+\exp\left(-\frac{1}{\sigma^2}\left[b + \frac{s^2}{2} + 
+\frac{\hat{\beta}^\top\left(M^{-1} + 
+(X^\top X)^{-1}\right)^{-1}\hat{\beta}}{2}\right]\right)
+}_{\text{Inverse Gamma shape in } \sigma^2}$$
+
+```{=latex}
+\begin{conclusionbox}
+
+\textbf{Conditional posterior of $\beta \mid \sigma^2, y$:}
+
+Fixing $\sigma^2$ and looking at the joint posterior as a function of 
+$\beta$ alone, only the quadratic term remains:
+$$p(\beta \mid \sigma^2, y) \propto 
+\exp\left(-\frac{1}{2\sigma^2}(\beta - \tilde{\beta})^\top
+(M + X^\top X)(\beta - \tilde{\beta})\right)$$
+This is the kernel of a multivariate Normal distribution, giving:
+$$\boxed{\beta \mid \sigma^2, y \sim N_{16}\left(\tilde{\beta},\ 
+\sigma^2(M + X^\top X)^{-1}\right)}$$
+where $\tilde{\beta} = (M + X^\top X)^{-1}(X^\top X)\hat{\beta}$.
+
+\textbf{Marginal posterior of $\sigma^2 \mid y$:}
+
+Integrating out $\beta$, the Gaussian integral over $\beta$ contributes 
+only a constant with respect to $\sigma^2$, leaving:
+$$p(\sigma^2 \mid y) \propto (\sigma^2)^{-n/2-16/2-(a+1)}
+\exp\left(-\frac{1}{\sigma^2}\left[b + \frac{s^2}{2} + 
+\frac{\hat{\beta}^\top\left(M^{-1} + 
+(X^\top X)^{-1}\right)^{-1}\hat{\beta}}{2}\right]\right)$$
+This is the kernel of an Inverse Gamma distribution, giving:
+$$\boxed{\sigma^2 \mid y \sim IG\left(\frac{n}{2} + a,\ b + 
+\frac{s^2}{2} + \frac{\hat{\beta}^\top\left(M^{-1} + 
+(X^\top X)^{-1}\right)^{-1}\hat{\beta}}{2}\right)}$$
+confirming that the joint posterior is Normal-Inverse Gamma with updated 
+parameters incorporating both the data through $s^2$, $\hat{\beta}$ 
+and the prior through $a$, $b$, $M$.
+\end{conclusionbox}
+```
+
+## C)
+\begin{statementbox}[title=MCMC]
+Using JAGS (Just Another Gibbs Sampler), we are going to simulate values 
+from the posterior distributions of $\beta_j$ for $j = 0, \dots, 15$ and 
+$\sigma^2$ assuming that $M$ is a diagonal matrix where all diagonal values 
+are equal to $10^{-4}$. We are then going to compare our results with those from 
+classical statistics with Ordinary Least Squares (OLS) and compare the 
+posterior distributions of the regression coefficients using boxplots. We 
+are also going to determine which explanatory variables should be removed 
+from the model based on those plots, and check if the true values of the 
+coefficients lie at the center of the posterior distributions.
+\end{statementbox}
+
+\begin{remarkbox}
+Note: Since WinBUGS uses identical model syntax to JAGS and both implement 
+the same MCMC algorithms, we use JAGS via the \texttt{R2jags} package 
+which is more stable on modern systems. The results are equivalent.
+\end{remarkbox}
+
+The JAGS model is specified with the following components:
+\begin{itemize}
+  \item \textbf{Likelihood:} Each observation $Y_i \sim N(\mu_i, \tau)$ 
+  where $\tau = 1/\sigma^2$ is the precision and 
+  $\mu_i = \beta_0 + \sum_{j=1}^{15}\beta_j X_{ij}$ is the linear 
+  predictor.\footnote{Note that JAGS parametrizes the Normal distribution 
+  by precision rather than variance.}
+  \item \textbf{Prior on $\beta$:} Each $\beta_j \sim N(0, \tau/10000)$, 
+  corresponding to $\beta \mid \sigma^2 \sim N_{16}(0, \sigma^2 M^{-1})$ 
+  with $M^{-1} = 10000 \cdot I_{16}$ since $M=10^{-4}\cdot I_{16}$, i.e. prior variance 
+  $\sigma^2 \cdot 10000$ per coefficient. In JAGS precision notation, 
+  this is $\tau/10000$. Since the prior variance is $10000\sigma^2$, 
+  which is very large relative to the data scale, this is a genuinely 
+  \textbf{vague prior} that allows the data to dominate the posterior.
+  \item \textbf{Prior on $\tau$:} $\tau \sim \text{Gamma}(0.0001, 0.0001)$, 
+  which corresponds to $\sigma^2 \sim IG(0.0001, 0.0001)$ --- a 
+  nearly flat, non-informative prior on the noise variance.
+\end{itemize}
+
+We run 3 independent chains for 10000 iterations each, discarding the 
+first 2000 as burn-in, giving $3 \times 8000 = 24000$ posterior samples 
+per parameter. Multiple chains allow us to compute the Gelman-Rubin 
+diagnostic $\hat{R}$ to verify convergence.
+
+```{=latex}
+\small
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| results: hide
+suppressPackageStartupMessages({
+library(MASS)
+library(R2jags)})
+# We regenerate the data with the same seed 444 to ensure
+# identical observations across all chunks
+set.seed(444)
+n <- 50
+mu_vec <- rep(0, 10)
+Sigma  <- diag(10)
+X_mat  <- mvrnorm(n, mu_vec, Sigma)
+
+for (j in 11:15) {
+  X_mat <- cbind(
+    X_mat,
+    0.3*X_mat[,1] + 0.5*X_mat[,2] +
+    0.7*X_mat[,3] + 0.9*X_mat[,4] +
+    1.5*X_mat[,5] + rnorm(50, 0, 1)
+  )}
+Y <- 4 + 2*X_mat[,1] - X_mat[,5] + 1.5*X_mat[,7] +
+     X_mat[,11] + 0.5*X_mat[,13] + rnorm(50, 0, 2.5)
+
+# JAGS requires all data passed explicitly as a named list
+# since it cannot access R's environment directly
+jags_data <- list(y = Y, X = X_mat, n = n)
+
+# Starting values, neutral, burn-in ensures
+# they do not affect the final posterior
+jags_inits <- function() list(beta = rep(0, 16), tau = 1)
+
+# Parameters to monitor
+jags_params <- c("beta", "sigma2")
+
+# Model written as a string to be saved to a file
+# and passed to the JAGS executable
+jags_model <- "
+model {
+  for (i in 1:n) {
+    y[i]  ~ dnorm(mu[i], tau)
+    mu[i] <- beta[1] + inprod(beta[2:16], X[i,])
+  }
+  for (j in 1:16) {
+    beta[j] ~ dnorm(0, tau/10000)
+  }
+  tau    ~ dgamma(0.0001, 0.0001)
+  sigma2 <- 1 / tau
+}
+"
+model_file <- file.path(tempdir(), "model_jags.txt")
+writeLines(jags_model, model_file)
+
+fit <- jags(
+  data               = jags_data,
+  inits              = jags_inits,
+  parameters.to.save = jags_params,
+  model.file         = model_file,
+  n.chains           = 3,
+  n.iter             = 10000,
+  n.burnin           = 2000,
+  n.thin             = 1
+)
+```
+
+```{r}
+library(knitr)
+summary_df <- as.data.frame(round(fit$BUGSoutput$summary, 4))
+rownames(summary_df) <- c(paste0("beta[", 0:15, "]"), "deviance", 
+                          "sigma2")
+summary_df <- summary_df[rownames(summary_df) != "deviance", ]
+summary_df <- summary_df[, !colnames(summary_df) %in% c("n.eff", 
+                          "Rhat")]
+kable(summary_df, caption = "Posterior summary for all parameters")
+```
+
+```{=latex}
+\normalsize
+```
+
+**Convergence Diagnostics:**
+
+Before interpreting results we assess convergence through trace plots, 
+the Gelman-Rubin diagnostic $\hat{R}$, effective sample sizes, and 
+autocorrelation plots.
+
+We select a representative subset of parameters for diagnostic 
+plots, namely one coefficient with true non-zero values ($\beta_1 = 2$) 
+, one with a coefficient that is zero ($\beta_2 = 0$) and $\sigma^2$ 
+which is always important to monitor independently.
+
+```{=latex}
+\small
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 8
+#| fig-cap: "Trace plots (left) and posterior kernel density estimates (right) for three representative parameters. Row 1: $\\beta_1$ (true value 2), a truly non-zero coefficient. Row 2: $\\beta_2$ (true value 0), a truly zero coefficient. Row 3: $\\sigma^2$, the variance."
+
+library(coda)
+mcmc_samples <- as.mcmc(fit)
+# Rename by matching, not by position
+for (i in 1:length(mcmc_samples)) {
+  cn <- colnames(mcmc_samples[[i]])
+  for (j in 1:16) {
+    cn[cn == paste0("beta[", j, "]")] <- paste0("beta[", j-1, "]")
+  }
+  colnames(mcmc_samples[[i]]) <- cn}
+
+key_params <- c("beta[1]",   # true = 2
+                "beta[2]",   # true = 0
+                "sigma2")    # true = 6.25
+ 
+param_labels <- c("beta[1] (true value = 2)",
+                  "beta[2] (true value = 0)",
+                  "sigma2  (true value = 6.25)")
+
+par(mfrow = c(3, 2), mar = c(4, 4, 3, 1))
+for (i in seq_along(key_params)) {
+  plot(mcmc_samples[, key_params[i]],
+       main = param_labels[i],
+       auto.layout = FALSE)}
+```
+
+```{=latex}
+\normalsize
+```
+
+\textbf{Trace plots (left column):} All three parameters show the 
+characteristic stationary, well-mixed ``hairy caterpillar'' pattern 
+across all 3 chains (black, red, green). No trending, drifting or 
+getting stuck is observed, confirming that the burn-in of 2000 
+iterations was sufficient and the chains have converged to the 
+stationary posterior distribution.
+
+\textbf{Density plots (right column):} The three parameters show 
+distinct posterior behaviors:
+\begin{itemize}
+  \item $\beta_1$ (true value 2) --- posterior centered around 
+  $\approx 1.5$, correctly identifying a non-zero positive effect. 
+  The slight underestimation of the true value is attributable to 
+  multicollinearity with the dependent variables $X_{11}, X_{13}$
+  \item $\beta_2$ (true value 0) --- posterior tightly centered 
+  at zero with mass concentrated in $[-1, 1]$, correctly 
+  identifying this coefficient as negligible
+  \item $\sigma^2$ posterior centered around 
+  $\approx 4$ with a right skew characteristic of the Inverse Gamma 
+  distribution. Here, $\sigma^2$ appears to be underestimated compared with the true 
+simulation value $2.5^2 = 6.25$. This is not necessarily problematic, 
+as it may be explained by the relatively small sample size, the large 
+number of predictors, and the presence of strong multicollinearity among 
+some explanatory variables. These factors can allow the fitted model to 
+absorb part of the random variation, leading to smaller residuals and 
+therefore a lower estimate of the residual variance.
+\end{itemize}
+
+We also do autocorrelation plots, to see whether the next value in the chain is dependent on the previous ones.
+```{=latex}
+\small
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 6
+#| fig-cap: "Autocorrelation plots for three representative parameters from chain 1. Lag 0 always equals 1 by definition. Quick decay to zero indicates low autocorrelation between consecutive samples."
+
+par(mfrow = c(3, 1), mar = c(4, 4, 3, 1))
+
+for (i in seq_along(key_params)) {
+  autocorr.plot(mcmc_samples[[1]][, key_params[i]],
+                main = param_labels[i],
+                auto.layout = FALSE)
+}
+```
+
+```{=latex}
+\normalsize
+```
+
+Autocorrelation drops to near zero immediately after lag 1 for all 
+parameters, confirming that consecutive samples are essentially 
+independent. This means the nominal 24000 samples are close to 
+24000 effectively independent draws.
+
+\newpage
+We are now going to use the Gelman-Rubin Statistic ($\hat R$)\footnote{The Gelman–Rubin statistic $\hat{R}$ compares the variance within MCMC chains to the variance between chains: $\hat{R} = \sqrt{\frac{\hat{V}}{W}},$ where $\hat{V} = \frac{n-1}{n}W + \frac{1}{n}B.$, $W$ is the average within‑chain variance, $B$ is the between‑chain variance.\\
+If chains have converged, $B \approx W$ and $\hat{R} \approx 1$., indicating convergence.} to check whether the 3 MCMC chains have converged to the same posterior distribution.
+
+```{=latex}
+\small
+```
+
+```{r}
+gelman <- gelman.diag(mcmc_samples)
+gelman_df <- data.frame(
+  Parameter = rownames(gelman$psrf),
+  Point_Est = round(gelman$psrf[, 1], 4),
+  Upper_CI  = round(gelman$psrf[, 2], 4),
+  row.names = NULL
+)
+# Sort
+correct_order <- c(paste0("beta[", 0:15, "]"), "sigma2")
+gelman_df <- gelman_df[match(correct_order, gelman_df$Parameter), ]
+kable(gelman_df, caption = "Gelman-Rubin convergence diagnostic")
+```
+
+```{=latex}
+\normalsize
+```
+
+All $\hat{R}$ values are extremely close to 1 (maximum observed 
+$\approx 1.002$), well below the standard threshold of 1.1. This 
+confirms that all 3 chains have converged to the same stationary 
+distribution.
+
+We are now going to calculate the Effective Sample Size(ESS)\footnote{The effective sample size (ESS) measures how many independent draws an MCMC chain is equivalent to. The effective sample size is $\text{ESS} = \frac{mn}{1 + 2\sum_{k=1}^{\infty} \rho_k},$, where $m$ is the number of chains, $n$ the samples per chain, and $\rho_k$ the lag‑$k$ autocorrelation. \\Higher autocorrelation lowers ESS. It is essentially an equivalent to the MC error.}, to check how many independent draws the MCMC chains out of the 24000.
+
+```{=latex}
+\small
+```
+
+```{r}
+eff_size <- effectiveSize(mcmc_samples)
+eff_df <- data.frame(
+  Parameter = names(eff_size),
+  ESS       = round(as.numeric(eff_size), 0),
+  row.names = NULL)
+# Sort
+eff_df <- eff_df[match(correct_order, eff_df$Parameter), ]
+kable(eff_df, caption = "Effective sample sizes")
+```
+
+```{=latex}
+\normalsize
+```
+
+All parameters achieve an ESS close to the nominal 24000, 
+confirming negligible autocorrelation. The exception is 
+$\sigma^2$ with ESS $\approx 14000$, which is still well above the 
+1000 threshold for reliable inference\footnote{This 1000 sample threshold is more conservative than the usual $<0.05$ we use in the MC error, which translates to only 400 samples being independent.}.
+\begin{remarkbox}
+Note that some ESS exceed 24000, this means that they actually show a small negative autocorrelation.
+\end{remarkbox}
+\newpage
+**Classical OLS Comparison:**
+
+```{=latex}
+\small
+```
+
+```{r}
+ols_fit   <- lm(Y ~ X_mat)
+true_vals <- c(4, 2, 0, 0, 0, -1, 0, 1.5, 0, 0, 0, 1, 0, 0.5, 0, 0)
+
+bayes_summary <- fit$BUGSoutput$summary[1:16, ]
+
+# Extract OLS standard errors from summary
+ols_se <- summary(ols_fit)$coefficients[, "Std. Error"]
+
+comparison <- data.frame(
+  Parameter    = paste0("beta[", 0:15, "]"),
+  True_Value   = true_vals,
+  OLS_Estimate = round(coef(ols_fit), 4),
+  OLS_SD       = round(ols_se, 4),
+  Bayes_Mean   = round(bayes_summary[, "mean"],  4),
+  Bayes_SD     = round(bayes_summary[, "sd"],    4),
+  CI_2.5       = round(bayes_summary[, "2.5%"],  4),
+  CI_97.5      = round(bayes_summary[, "97.5%"], 4),
+  row.names    = NULL
+)
+
+kable(comparison,
+      caption = "Comparison of true values, OLS estimates and 
+      Bayesian posterior summaries")
+```
+
+```{=latex}
+\normalsize
+```
+\newpage
+
+The Bayesian posterior means are virtually identical to the OLS 
+estimates throughout, and the posterior standard deviations are 
+consistently slightly smaller than the OLS standard errors. Both 
+observations are expected, with prior variance $10000\sigma^2$ 
+per coefficient the prior is so vague that the likelihood dominates 
+completely and Bayesian inference reduces to classical inference. 
+The marginal reduction in posterior standard deviations reflects 
+the small but non-zero contribution of the prior, which pulls 
+estimates very gently toward zero, or to put it simply, the prior 
+adds a tiny bit of extra information, reducing uncertainty very slightly.
+
+**Posterior Boxplots:**
+
+We will now do boxplots for all posterior parameters in order to visualize where their estimated values lie. By examining the center and spread of each box, we can see whether the bulk of the posterior mass is close to zero or clearly shifted away from it. Parameters whose credible intervals include 0 are potential candidates for removal, since they show weak evidence of contributing to the model. In contrast, parameters whose boxplots lie clearly away from zero indicate stronger, more meaningful effects.
+
+\begin{remarkbox}
+It is important to note that while the boxplots provide a useful visual summary of where each posterior coefficient lies, they are not sufficient on their own for deciding which parameters to remove. However, having already examined multiple diagnostics (the Gelman–Rubin statistic, the effective sample size, and the autocorrelation structure), we ensure that the posterior estimates are stable, well‑mixed, and based on effectively independent samples. Under these conditions, coefficients whose credible intervals include zero can be considered reliable candidates for removal.
+\end{remarkbox}
+```{=latex}
+\small
+```
+
+```{r}
+#| fig-width: 12
+#| fig-height: 6
+#| fig-cap: "The boxplots show the full posterior distribution of each β_j. The red dashed line marks zero and the orange diamonds mark the true simulated values. The boxes themselves are the IQR, which contains the middle 50% of the posterior samples (25th to 75th percentile), while the whiskers go to the most extreme points within 1.5xIQR from the box."
+
+beta_samples <- fit$BUGSoutput$sims.matrix[, 1:16]
+colnames(beta_samples) <- paste0("β[", 0:15, "]")
+par(mar = c(5, 4, 4, 2))
+boxplot(beta_samples,
+        main   = "Posterior Distributions of Regression Coefficients",
+        ylab   = "Posterior Value",
+        xlab   = "Coefficient",
+        las    = 2,
+        col    = "lightblue",
+        border = "darkblue")
+abline(h = 0, col = "red", lty = 2, lwd = 2)
+points(1:16, true_vals, pch = 18, col = "orange", cex = 1.5)
+legend("topright",
+       legend = c("Zero reference", "True value"),
+       col    = c("red", "orange"),
+       lty    = c(2, NA),
+       pch    = c(NA, 18),
+       lwd    = c(2, NA))
+```
+
+```{=latex}
+\normalsize
+```
+
+From the boxplots and credible 
+intervals:
+
+\begin{itemize}
+  \item $\beta_0, \beta_1, \beta_7, \beta_{11}$'s credible intervals 
+  clearly exclude zero, correctly identified them as important
+  \item $\beta_5$ is a borderline case, the CI barely includes zero 
+  ($[-4.11, 0.23]$) due to multicollinearity: $X_{11}, \ldots, X_{15}$ 
+  depend on $X_5$, causing the model to partially absorb $\beta_5$'s 
+  signal through the correlated variables
+  \item $\beta_{13}$ (true value 0.5) is missed entirely, the effect 
+  is too small to detect reliably with only $n = 50$ observations
+  \item $\beta_{15}$ is a false positive due to multicollinearity, as $X_{15}$ is one of the dependent variables built from $X_1, \ldots, X_5$, sharing signal with the true predictors through its construction. $\beta_6$, $\beta_8$, and $\beta_9$ are false positives due to sampling variability($n = 50$ observations and $p = 15$ predictors)
+  \item All remaining coefficients, namely $\beta_2, \beta_3, \beta_4, \beta_{10}, \beta_{12}, \beta_{14}$, are correctly identified as near zero and are candidates for removal
+\end{itemize}
+
+\begin{remarkbox}
+With $n = 50$ and $p = 15$, the model has limited degrees of 
+freedom, making it difficult to reliably distinguish true signals from noise, whether 
+through multicollinearity among the correlated predictors $X_{11}, \ldots, X_{15}$ 
+or through chance correlations in a small sample.
+\end{remarkbox}
+
+Finally, to check if the real values are in the center of the posteriors.
+
+```{=latex}
+\small
+```
+
+```{r}
+coverage <- data.frame(
+  Parameter  = paste0("beta[", 0:15, "]"),
+  True_Value = true_vals,
+  CI_2.5     = round(bayes_summary[, "2.5%"],  4),
+  CI_97.5    = round(bayes_summary[, "97.5%"], 4),
+  Covered    = ifelse(
+    true_vals >= bayes_summary[, "2.5%"] &
+    true_vals <= bayes_summary[, "97.5%"],
+    "Yes", "No"),
+  row.names  = NULL)
+kable(coverage, caption = "Coverage of 95% Credible Intervals 
+      for Each Parameter")
+```
+
+```{=latex}
+\normalsize
+```
+\begin{remarkbox}
+It is important to note that the credible intervals shown here are the true 95\% posterior credible intervals, computed from the 2.5\% and 97.5\% posterior quantiles. In contrast, the boxplots use the classical definition of whiskers, extending to
+$$
+1.5 \times \text{IQR},
+$$
+which is not the same as the 95\% credible interval. As a result, the limits in the boxplots and the limits in the table do not coincide, and they should not be interpreted as representing the same quantity.
+\end{remarkbox}
+\newpage
+
+```{r}
+proximity <- data.frame(
+  Parameter  = paste0("beta[", 0:15, "]"),
+  True_Value = true_vals,
+  Post_Mean  = round(bayes_summary[, "mean"], 4),
+  Post_SD    = round(bayes_summary[, "sd"],   4),
+  Dist_SDs   = round(abs(true_vals - bayes_summary[, "mean"]) /
+                       bayes_summary[, "sd"], 2),
+  At_Center  = ifelse(
+  abs(true_vals - bayes_summary[, "mean"]) 
+  / bayes_summary[, "sd"] < 1, "Yes", "No"),
+  row.names  = NULL)
+kable(proximity,
+col.names = c("Parameter", "True", "Post. Mean", "Post. SD",
+                    "|true - mean| / SD", "Within 1 SD?"),
+caption   = "Proximity of true coefficient values 
+to posterior means")
+```
+
+
+\newpage
+
+\begin{conclusionbox}
+
+Of the 16 parameters, 11 have their true value covered by the 95\%
+credible interval. The 5 failures are not surprising:
+\begin{itemize}
+  \item $\beta_6, \beta_8, \beta_9, \beta_{15}$ --- true value is 0
+  but the CI excludes zero due to multicollinearity absorbing signal
+  from correlated predictors (false positives)
+  \item $\beta_{13}$, true value is 0.5 but the CI includes only
+  values near zero; the effect is too weak to detect at $n = 50$
+  (false negative)
+\end{itemize}
+The proximity table above quantifies this directly using the
+standardised distance $|\text{true} - \text{mean}| / \text{SD}$.
+Only $\beta_7$ (distance $= 1.00$) sits essentially at the center of
+its posterior. The other signal-carrying coefficients, namely
+$\beta_0$ ($1.34$), $\beta_1$ ($1.23$), and $\beta_{11}$ ($1.31$),
+are within roughly $1.3$ SDs, meaning the true value falls in the
+denser part of the posterior but is not at its peak. This mild
+displacement is a direct consequence of multicollinearity: the
+dependent variables $X_{11}, X_{13}$ share signal with $X_1$, causing
+the posterior for $\beta_1$ (and similarly $\beta_{11}$) to shift away
+from the true value. For the truly-zero coefficients that are correctly
+identified ($\beta_2, \beta_3, \beta_4, \beta_{10}, \beta_{12},
+\beta_{14}$), the distance is negligible ($\leq 0.43$) since both the
+true value and the posterior mean are near zero. \\
+
+The false positive parameters ($\beta_6$, $\beta_8$, $\beta_9$, $\beta_{15}$) 
+and $\beta_{13}$ show the largest displacements ($> 2$ SDs from their true 
+values). For $\beta_{15}$ this reflects multicollinearity pulling the posterior 
+away from zero. For $\beta_6$, $\beta_8$, and $\beta_9$ it reflects spurious 
+correlations with $Y$ in this particular sample of $n = 50$. For $\beta_{13}$ 
+the effect size of $0.5$ is simply too small to detect reliably, with the 
+posterior mean near zero rather than near the true value.\\
+
+Convergence diagnostics were excellent: trace plots showed stable mixing,
+autocorrelation dropped immediately, effective sample sizes were large,
+and all Gelman--Rubin statistics satisfied $\hat{R} \approx 1.000$.
+Overall, the MCMC results confirmed the Normal--Inverse-Gamma posterior
+structure derived analytically and agreed closely with the OLS
+estimates for the significant predictors.
+\end{conclusionbox}
+
+## D)
+
+\begin{statementbox}[title={Custom Gibbs Sampler}]
+We are now going to implement our own Gibbs sampler in R in order to directly simulate from the posterior distributions of the regression coefficients
+$ \beta_0,\ldots,\beta_{15} $
+and the noise variance
+$ \sigma^2 $.
+This allows us to verify in practice the Normal–Inverse‑Gamma posterior structure derived analytically in parts A and B, and to compare the results of our custom sampler with both the classical OLS estimates and the JAGS output obtained in C).
+\end{statementbox}
+\newpage
+The key idea is that, although this joint distribution is high‑dimensional, the full conditional distributions are simple and available in closed form. In our Bayesian linear regression model with a Normal–Inverse‑Gamma prior, the conditional posterior for the regression coefficients($\beta$) is\footnote{Here we also use the expression $X^\top X\hat{\beta} = X^\top y$.}
+$$
+\beta \mid \sigma^2, y, X \sim
+N\!\left((M + X^\top X)^{-1} X^\top y,\; \sigma^2 (M + X^\top X)^{-1}\right),
+$$
+However, to implement the Gibbs sampler we also require the full conditional of 
+$\sigma^2 \mid \beta, y, X$.
+
+Starting from Bayes' theorem and treating $\beta$ as known:
+
+$$p(\sigma^2 \mid \beta, y, X) \propto p(y \mid \beta, \sigma^2) \cdot p(\sigma^2)$$
+Substituting
+
+$$\propto (\sigma^2)^{-n/2} \exp\!\left(-\frac{(y-X\beta)^\top(y-X\beta)}{2\sigma^2}\right) \cdot (\sigma^2)^{-(a+1)}\exp\!\left(-\frac{b}{\sigma^2}\right)$$
+By rearranging the terms we get
+$$\propto (\sigma^2)^{-\left(a + \frac{n}{2} + 1\right)} \exp\!\left(-\frac{1}{\sigma^2}\left(b + \frac{(y-X\beta)^\top(y-X\beta)}{2}\right)\right)$$
+
+which is the kernel of an Inverse Gamma distribution, giving:
+
+$$\sigma^2 \mid \beta, y, X \sim IG\!\left(a + \frac{n}{2},\ b + \frac{1}{2}(y - X\beta)^\top(y - X\beta)\right)$$
+\begin{remarkbox}
+Note that unlike the marginal $\sigma^2 \mid y, X$ derived in part B, 
+this full conditional conditions on the current value of $\beta$ rather 
+than integrating it out, making it considerably simpler to evaluate at 
+each iteration of the sampler.
+\end{remarkbox}
+
+Thus the conditional posterior for the noise variance is
+$$
+\sigma^2 \mid \beta, y, X \sim
+\mathrm{IG}\!\left(\frac{n}{2} + a,\; b + \tfrac{1}{2}(y - X\beta)^\top (y - X\beta)\right).
+$$
+
+The Gibbs sampler alternates between drawing $\beta$ from $p(\beta \mid \sigma^2, y, X)$ 
+and $\sigma^2$ from $p(\sigma^2 \mid \beta, y, X)$ and by repeatedly updating 
+these two blocks in succession, the Markov chain converges to the full posterior distribution, 
+allowing us to approximate $p(\beta, \sigma^2 \mid y, X)$ using the simulated draws.
+```{=latex}
+\small
+```
+
+```{r}
+gibbs_sampler <- function(y, X, n_iter = 10000,
+                          M = diag(ncol(X))/10000,
+                          a = 0.0001, b = 0.0001,
+                          beta_init = NULL,
+                          sigma2_init = 1) {
+  n <- length(y)
+  p <- ncol(X)
+
+  # Storage
+  beta_samples  <- matrix(NA, nrow = n_iter, ncol = p)
+  sigma2_samples <- numeric(n_iter)
+
+  # Initial values
+  beta_curr <- if (is.null(beta_init)) rep(0, p) else beta_init
+  sigma2_curr <- sigma2_init
+
+  # Precompute
+  XtX <- t(X) %*% X
+  XtY <- t(X) %*% y
+
+  for (t in 1:n_iter) {
+
+    # 1) Sample beta | sigma2, y, X
+    # JAGS prior: beta_j ~ N(0, 10000*sigma2)
+    # Prior precision = 1/(10000*sigma2)
+    M_prior <- diag(p) * (1 / (10000 * sigma2_curr))
+
+    # Posterior precision
+    M_post <- XtX + M_prior
+    M_post_inv <- solve(M_post)
+
+    beta_mean <- M_post_inv %*% XtY
+    beta_cov  <- sigma2_curr * M_post_inv
+
+    beta_curr <- as.vector(MASS::mvrnorm(1, 
+                      mu = beta_mean, Sigma = beta_cov))
+
+    # 2) Sample sigma2 | beta, y, X
+    resid <- y - X %*% beta_curr
+
+    shape_post <- a + n/2
+    rate_post  <- b + 0.5 * sum(resid^2)
+
+    sigma2_curr <- 1 / rgamma(1, shape = shape_post, rate = rate_post)
+
+    # Store
+    beta_samples[t, ] <- beta_curr
+    sigma2_samples[t] <- sigma2_curr
+  }
+
+  list(beta = beta_samples, sigma2 = sigma2_samples)
+}
+
+```
+
+```{=latex}
+\normalsize
+```
+The key idea behind the Gibbs sampler is that, although the joint posterior 
+$p(\beta, \sigma^2 \mid y, X)$ is high-dimensional and difficult to sample 
+from directly, the two full conditional distributions are simple and available 
+in closed form. The Gibbs sampler exploits this by alternating between drawing 
+from each full conditional in turn, using the most recently sampled value of 
+the other parameter. Formally, at each iteration $t$:
+
+$$\beta^{(t)} \sim p(\beta \mid \sigma^{2(t-1)}, y, X)$$
+
+$$\sigma^{2(t)} \sim p(\sigma^2 \mid \beta^{(t)}, y, X)$$
+
+By repeatedly cycling through these two steps, the Markov chain converges 
+to the joint posterior $p(\beta, \sigma^2 \mid y, X)$ as its stationary 
+distribution, and after a sufficient burn-in period the draws can be treated 
+as approximate samples from it.
+
+**Step 1: Sample $\beta \mid \sigma^{2(t-1)}, y, X$**
+
+From part B, the full conditional for $\beta$ is:
+
+$$\beta \mid \sigma^2, y, X \sim N_{16}\!\left((M + X^\top X)^{-1}X^\top y,\ 
+\sigma^2(M + X^\top X)^{-1}\right)$$
+
+The posterior precision matrix is $M + X^\top X$, where $M$ is the prior 
+precision matrix. Since $M = 10^{-4} \cdot I_{16}$ is very small, the 
+posterior is dominated by the data through $X^\top X$. In the code, the 
+prior precision at iteration $t$ is:
+
+$$M_{\text{prior}} = \frac{1}{10000 \cdot \sigma^{2(t-1)}} I_{16}$$
+
+which matches the JAGS prior $\beta_j \sim N(0, 10000\sigma^2)$. The 
+posterior covariance and mean are then:
+
+$$\Sigma_{\text{post}} = \sigma^{2(t-1)}(M_{\text{prior}} + X^\top X)^{-1}, 
+\qquad \mu_{\text{post}} = (M_{\text{prior}} + X^\top X)^{-1}X^\top y$$
+
+and one draw $\beta^{(t)}$ is taken from this multivariate Normal using 
+\texttt{MASS::mvrnorm}.
+
+\newpage
+**Step 2: Sample $\sigma^{2(t)} \mid \beta^{(t)}, y, X$**
+
+From the derivation above, the full conditional for $\sigma^2$ is:
+
+$$\sigma^2 \mid \beta, y, X \sim IG\!\left(a + \frac{n}{2},\ b + 
+\frac{1}{2}(y - X\beta)^\top(y - X\beta)\right)$$
+
+The updated shape parameter $a + n/2$ adds half the number of observations 
+to the prior shape, while the updated rate parameter adds half the current 
+residual sum of squares $\sum_{i=1}^n (y_i - x_i^\top \beta^{(t)})^2$ to 
+the prior rate $b$. Since R has no built-in inverse gamma sampler, we use 
+the equivalence $\sigma^2 \sim IG(\alpha, \beta) \iff 1/\sigma^2 \sim 
+\text{Gamma}(\alpha, \beta)$ and draw:
+
+$$\tau^{(t)} \sim \text{Gamma}\!\left(a + \frac{n}{2},\ b + 
+\frac{1}{2}(y - X\beta^{(t)})^\top(y - X\beta^{(t)})\right), 
+\qquad \sigma^{2(t)} = \frac{1}{\tau^{(t)}}$$
+
+At each iteration, $\beta^{(t)}$ is drawn conditioning on the previous 
+$\sigma^{2(t-1)}$, and $\sigma^{2(t)}$ is drawn conditioning on the 
+freshly updated $\beta^{(t)}$. This creates a Markov chain whose 
+transitions leave the joint posterior invariant. Each full conditional 
+draw is exact, so no accept-reject step is needed unlike in 
+Metropolis-Hastings. This is the key practical advantage of Gibbs sampling, 
+whenever the full conditionals are available in closed form and easy to 
+sample from, Gibbs is preferred precisely because it avoids the inefficiency 
+of rejected proposals.
+
+After discarding the first 2000 iterations as 
+burn-in, the remaining draws form a dependent but consistent sample 
+from $p(\beta, \sigma^2 \mid y, X)$.
+
+With the sampler defined, we now apply it to our simulated dataset.
+We first augment the design matrix with an intercept term and then run the Gibbs algorithm for 
+$10000$ iterations, using the same prior hyperparameters as in the JAGS model to ensure comparability.
+```{=latex}
+\small
+```
+```{r}
+# Add intercept column
+X_gibbs <- cbind(1, X_mat)
+
+# Run Gibbs sampler
+set.seed(444)
+
+gibbs_out <- gibbs_sampler(
+  y = Y,
+  X = X_gibbs,
+  n_iter = 10000,          # same total iterations
+  M = diag(16) / 10000,    # same prior as JAGS
+  a = 0.0001,
+  b = 0.0001
+)
+
+```
+```{=latex}
+\normalsize
+```
+We discard the first $2,000$ iterations as burn‑in, retaining only the remaining samples for posterior inference.
+```{=latex}
+\small
+```
+```{r}
+burn <- 2000
+
+# Burn-in
+beta_gibbs  <- gibbs_out$beta[(burn + 1):nrow(gibbs_out$beta), ]
+sigma2_gibbs <- gibbs_out$sigma2[(burn + 1):length(gibbs_out$sigma2)]
+
+```
+```{=latex}
+\normalsize
+```
+After burn‑in, we compute posterior summaries for each parameter.
+The posterior means serve as Bayesian point estimates for $\beta$ and $\sigma^2$, while the posterior standard deviations quantify their uncertainty, analogous to standard errors in classical regression.
+```{=latex}
+\small
+```
+
+```{r}
+library(knitr)
+# TRUE VALUES
+beta_true <- c(4.0, 2.0, 0.0, 0.0, 0.0, -1.0, 0.0, 1.5,
+               0.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.0, 0.0)
+sigma2_true <- 6.25
+
+# Gibbs summaries
+beta_gibbs_mean <- colMeans(beta_gibbs)
+beta_gibbs_sd   <- apply(beta_gibbs, 2, sd)
+sigma2_gibbs_mean <- mean(sigma2_gibbs)
+sigma2_gibbs_sd   <- sd(sigma2_gibbs)
+
+# OLS estimates (same as old table)
+ols_fit <- lm(Y ~ X_mat)
+beta_ols  <- coef(ols_fit)
+ols_sd    <- summary(ols_fit)$coefficients[, "Std. Error"]
+sigma2_ols <- summary(ols_fit)$sigma^2
+
+# JAGS posterior means & SDs (same as old table)
+beta_jags     <- bayes_summary[, "mean"]
+beta_jags_sd  <- bayes_summary[, "sd"]
+sigma2_jags    <- fit$BUGSoutput$mean$sigma2
+sigma2_jags_sd <- fit$BUGSoutput$sd$sigma2
+
+# Comparison table
+comparison_table <- data.frame(
+  Parameter     = c(paste0("beta[", 0:15, "]"), "sigma2"),
+  True_Value    = c(beta_true, sigma2_true),
+  OLS_Mean      = c(beta_ols, sigma2_ols),
+  OLS_SD        = c(ols_sd, NA),
+  JAGS_Mean     = c(beta_jags, sigma2_jags),
+  JAGS_SD       = c(beta_jags_sd, sigma2_jags_sd),
+  Gibbs_Mean    = c(beta_gibbs_mean, sigma2_gibbs_mean),
+  Gibbs_SD      = c(beta_gibbs_sd, sigma2_gibbs_sd),
+  row.names     = NULL
+)
+kable(
+  comparison_table,
+  caption = "Comparison of OLS Estimates, JAGS Posterior Means/SDs, 
+  and Gibbs Posterior Means/SDs",
+  digits = 4,
+  align = "lrrrrrrrr"
+)
+
+```
+```{=latex}
+\normalsize
+```
+
+It is clear that the means are once again identical across all methods, but the SD's are considerably worse for the custom Gibbs Sampler, before we draw our conclusions, it is meaningful to do some diagnostics:
+
+```{=latex}
+\small
+```
+
+```{r}
+#| fig-width: 6
+#| fig-height: 5
+#| fig-cap: "Trace plot (top) and autocorrelation plot (bottom) for $\\beta_1$ from the Gibbs sampler"
+library(coda)
+beta1_chain <- gibbs_out$beta[, 1]
+mcmc_beta1  <- mcmc(beta1_chain)
+
+par(mfrow = c(2, 1), mar = c(4, 4, 3, 1))
+traceplot(mcmc_beta1, 
+          main = expression(paste("Trace plot — ", beta[1])))
+autocorr.plot(mcmc_beta1, 
+              main = expression(paste("ACF — ", beta[1])),
+              auto.layout = FALSE)
+```
+
+```{r}
+ess_gibbs <- effectiveSize(mcmc_beta1)
+cat(sprintf("Effective Sample Size (ESS): %.0f out of %d nominal draws\n",
+            ess_gibbs, nrow(gibbs_out$beta) - 2000))
+```
+
+```{=latex}
+\normalsize
+```
+\begin{remarkbox}
+Since the custom Gibbs sampler runs a single chain, the Gelman-Rubin 
+diagnostic $\hat{R}$ is not applicable. We instead assess convergence 
+through the trace plot, autocorrelation plot, and effective sample size 
+for $\beta_1$ as a representative parameter.
+\end{remarkbox}
+\begin{conclusionbox}
+The trace plot shows a stationary, well-mixed chain from the very first 
+iteration, with no trending or drifting, confirming that the starting 
+values do not affect the posterior draws and no burn-in beyond the 
+discarded 2000 iterations was necessary. The autocorrelation drops to 
+zero immediately after lag 0, indicating that successive samples are 
+essentially independent. The effective sample size of $9614$ actually 
+exceeds the nominal $8000$ post-burn-in draws, reflecting a slight 
+negative autocorrelation.
+
+Since the custom Gibbs sampler runs a single chain, the Gelman-Rubin 
+diagnostic $\hat{R}$ is not applicable. All diagnostics confirm the 
+sampler is behaving correctly, the slightly larger posterior standard 
+deviations compared to JAGS simply reflect the difference in total 
+sample size: JAGS produced $24000$ post-burn-in draws across 3 chains 
+whereas the custom sampler produced $8000$ from a single chain, giving 
+three times fewer samples and consequently larger Monte Carlo error in 
+estimating posterior variances.\\
+
+In short, the sampler is behaving correctly, and the slightly larger posterior standard deviations simply reflect sampling noise rather than a flaw in the algorithm.
+\end{conclusionbox}
+\newpage
+# Exercise 2
+
+\begin{statementbox}[title={Bayesian Hypothesis Test}]
+Now we are going to perform a Bayesian hypothesis test for a Poisson model.  
+We assume that the daily number of errors on a server follows a Poisson distribution with unknown rate parameter $ \lambda > 0 $.  
+Over a period of 10 days, we observed a total of 35 errors.
+
+We want to test the following hypotheses:
+
+$$
+H_0: \lambda = 2 \quad \text{versus} \quad H_1: \lambda \neq 2
+$$
+\end{statementbox}
+
+The sufficient statistic for $n = 10$ i.i.d. Poisson observations is $T = \sum_{i=1}^{10} Y_i \sim \text{Poisson}(10\lambda)$, with observed value $T = 35$.
+
+## A)
+
+We assume that both hypotheses are equally probable and calculate both marginal likelihoods:
+
+\begin{itemize}
+\item{Marginal likelihood under $H_0$ ($\lambda = 2$): $$m_0 = P(T=35 \mid \lambda=2) = \frac{e^{-20} \cdot 20^{35}}{35!}$$}
+\item{Marginal likelihood under $H_1$ (Assuming $\lambda \sim \text{Gamma}(2,1)$), and integrating out $\lambda$: $$m_1 = \int_0^\infty \frac{e^{-10\lambda}(10\lambda)^{35}}{35!} \cdot \lambda e^{-\lambda} \, d\lambda = \frac{10^{35}}{35!} \int_0^\infty \lambda^{36} e^{-11\lambda} \, d\lambda = \frac{10^{35} \cdot \Gamma(37)}{35! \cdot 11^{37}} = \frac{36 \cdot 10^{35}}{11^{37}}$$ since $\int_0^\infty \lambda^{a-1} e^{-b\lambda}=\frac{\Gamma(b)}{b^a}$ from the Gamma Kernel, with $\Gamma(37) = 36!$ and $\Gamma(2) = 1$.}
+\end{itemize}
+\begin{remarkbox}
+Note that Gamma(2,1)'s mean is $\alpha/\beta = 2$, matching $H_0$, but its standard deviation is $\sqrt{\alpha/\beta^2} = \sqrt{2} \approx 1.41$, a substantial spread relative to the mean, encoding only mild belief that $\lambda \approx 2$. 
+\end{remarkbox}
+
+\newpage
+To visualize this:
+
+
+```{=latex}
+\small
+```
+```{r}
+#| echo: false
+#| fig-width: 8
+#| fig-height: 5
+#| fig-cap: "Gamma(2,1) prior (blue) vs Poisson likelihood for T=35 (red). The prior is much flatter, showing it is only weakly informative."
+
+# Data summary
+T_obs <- 35
+n <- 10
+
+# Prior: Gamma(2,1)
+prior <- function(lambda) dgamma(lambda, shape = 2, rate = 1)
+
+# Likelihood for T given lambda: Poisson with mean n*lambda
+lik <- function(lambda) dpois(T_obs, lambda = n * lambda)
+
+# Normalize likelihood so it fits on the same scale
+lambda_grid <- seq(0, 8, length.out = 400)
+lik_vals <- lik(lambda_grid)
+lik_norm <- lik_vals / max(lik_vals) * max(prior(lambda_grid))
+
+# Plot prior
+plot(lambda_grid, prior(lambda_grid),
+     type = "l", lwd = 3, col = "blue",
+     xlab = expression(lambda),
+     ylab = "Density (scaled)",
+     main = "Prior vs Likelihood")
+
+# Add scaled likelihood
+lines(lambda_grid, lik_norm, lwd = 3, col = "red")
+
+legend("topright",
+       legend = c("Gamma(2,1) Prior", "Poisson Likelihood (scaled)"),
+       col = c("blue", "red"), lwd = 3)
+```
+
+```{=latex}
+\normalsize
+```
+
+
+With equal prior probabilities $P(H_0) = P(H_1) = 0.5$\footnote{This is a subjective choice reflecting our prior belief about
+the relative plausibility of the two hypotheses. Assigning
+$P(H_0) = P(H_1) = 0.5$ is the non-informative option: it expresses
+a complete absence of prior preference for either hypothesis, letting
+the data speak through $BF_{10}$ alone.}, the prior odds equal 1, so:
+
+$$BF_{10} = \frac{m_1}{m_0}, \qquad PO_{10} = BF_{10} \times \underbrace{\frac{P(H_1)}{P(H_0)}}_{=1} = BF_{10}$$
+\begin{remarkbox}
+This ratio basically indicates how much more likely the observed data are under $H_1$ than under $H_0$.
+\end{remarkbox}
+\newpage We compute these numerically below.\footnote{Note that, the posterior probabilities follow from the odds–probability relation:
+$$
+P(H_1) = \frac{PO_{10}}{1 + PO_{10}}, \quad P(H_0) = 1 - P(H_1).
+$$}
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex2-partA
+#| echo: true
+
+n       <- 10
+T_obs   <- 35
+lambda0 <- 2
+alpha_prior <- 2; beta_prior <- 1
+
+# Marginal likelihoods (log scale for numerical stability)
+log_m0 <- dpois(T_obs, lambda = n * lambda0, log = TRUE)
+log_m1 <- log(36) + 35*log(10) - 37*log(11)
+#note that normalization cancels out, so these are just the kernels
+m0   <- exp(log_m0)
+m1   <- exp(log_m1)
+BF10 <- m1 / m0
+PO10 <- BF10   # equal prior odds => PO = BF
+P_H1 <- PO10 / (1 + PO10)
+P_H0 <- 1 - P_H1
+
+library(knitr)
+kable(data.frame(
+  Quantity = c("m0", "m1", "BF10", "PO10",
+               "P(H0 | T=35)", "P(H1 | T=35)"),
+  Value    = round(c(m0, m1, BF10, PO10, P_H0, P_H1), 4)
+), caption = "Bayes Factor and Posterior Odds")
+```
+
+```{=latex}
+\normalsize
+```
+
+\begin{conclusionbox}
+Since $BF_{10} \approx 15.45 > 10$, this constitutes strong evidence in favour of $H_1$ on the Jeffreys scale. The posterior probability of $H_1$ is approximately $0.94$, so $\lambda = 2$ is strongly disfavoured given a sample rate of $35/10 = 3.5$.
+\end{conclusionbox}
+
+## B) 
+\begin{statementbox}[title={Posterior Predictive Distribution for $Y_{11}$}]
+We are going to compute the posterior predictive distribution for the 11th observation under the alternative hypothesis.  
+This involves deriving its expected value and variance, comparing these with the classical predictive measures, and finally evaluating the posterior probability that the 11th observation exceeds 5.
+\end{statementbox}
+
+Combining the Poisson likelihood with the Gamma$(2,1)$ prior\footnote{Gamma–Poisson conjugacy:
+Let $Y_1,\dots,Y_n \mid \lambda \stackrel{\text{iid}}{\sim} \text{Poisson}(\lambda)$ and $\lambda \sim \text{Gamma}(\alpha,\beta)$.  
+Then the likelihood is
+$$
+p(Y \mid \lambda)
+\propto \lambda^{\sum_{i=1}^n Y_i} e^{-n\lambda},
+$$
+and the prior is
+$$
+p(\lambda) \propto \lambda^{\alpha - 1} e^{-\beta \lambda}.
+$$
+The posterior is proportional to
+$$
+p(\lambda \mid Y) \propto p(Y \mid \lambda)\, p(\lambda)
+\propto \lambda^{\alpha - 1 + \sum Y_i} e^{-(\beta + n)\lambda},
+$$
+which is the kernel of a $\text{Gamma}(\alpha + \sum Y_i,\; \beta + n)$ distribution.  
+Thus, the Gamma prior is conjugate to the Poisson likelihood.}:
+
+$$\lambda \mid T=35 \sim \text{Gamma}(\alpha^* = 2+35,\; \beta^* = 1+10) = \text{Gamma}(37, 11)$$
+
+Marginalising over $\lambda$ gives us the posterior predictive, the probability of a new observation given the already observed data:
+
+$$P(Y_{11} = k \mid \mathbf{y}) = \int_0^\infty \frac{e^{-\lambda}\lambda^k}{k!} \cdot \frac{11^{37}}{\Gamma(37)}\lambda^{36}e^{-11\lambda}\,d\lambda = \binom{k+36}{k}\left(\frac{11}{12}\right)^{37}\left(\frac{1}{12}\right)^{k}$$
+
+so $Y_{11} \mid \mathbf{y} \sim \text{NegBin}(r = 37,\; p = 11/12)$.
+
+With the distribution known we can calculate the moments which are given by the Negative Binomial relations:
+
+$$E[Y_{11} \mid \mathbf{y}] = \frac{r(1-p)}{p} = \frac{37 \cdot \frac{1}{12}}{\frac{11}{12}} = \frac{37}{11} \approx 3.364$$
+
+$$\text{Var}[Y_{11} \mid \mathbf{y}] = \frac{r(1-p)}{p^2} = \frac{37 \cdot 12}{121} = \frac{444}{121} \approx 3.669$$
+\begin{defbox}
+
+For the Classical MLE we let $Y_1,\dots,Y_n \stackrel{\text{iid}}{\sim} \text{Poisson}(\lambda)$.  
+The likelihood then is
+$$
+L(\lambda)
+= \prod_{i=1}^n \frac{e^{-\lambda}\lambda^{Y_i}}{Y_i!},
+$$
+so the log-likelihood is
+$$
+\ell(\lambda)
+= \sum_{i=1}^n \left(-\lambda + Y_i \log\lambda\right) + C
+= -n\lambda + T\log\lambda + C,
+$$
+where $T = \sum_{i=1}^n Y_i$.  
+Differentiating and setting to zero,
+$$
+\frac{d\ell}{d\lambda}
+= -n + \frac{T}{\lambda} = 0
+\quad\Rightarrow\quad
+\hat{\lambda} = \frac{T}{n}.
+$$
+\end{defbox}
+Thus, in classical formulation, the MLE is $\hat{\lambda} = T/n = 3.5$, so the classical plug-in predictive is Poisson$(3.5)$ with mean $=$ variance $= 3.5$. The Bayesian predictive mean ($3.364$) is slightly lower because the prior pulls the rate toward $2$. The Bayesian variance ($3.669$) exceeds the classical one ($3.5$) because it propagates uncertainty about $\lambda$ rather than treating the estimate as exact.
+
+Finally we calculate the posterior probability $P(Y_{11} > 5)$:
+
+$$P(Y_{11} > 5 \mid \mathbf{y}) = 1 - \sum_{k=0}^{5} \binom{k+36}{k}\left(\frac{11}{12}\right)^{37}\left(\frac{1}{12}\right)^{k}$$
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex2-partB
+
+
+alpha_post <- alpha_prior + T_obs   # 37
+beta_post  <- beta_prior  + n       # 11
+r_nb       <- alpha_post
+p_nb       <- beta_post / (beta_post + 1)   # 11/12
+lambda_mle <- T_obs / n                     # 3.5
+
+pred_mean_bayes <- r_nb * (1 - p_nb) / p_nb
+pred_var_bayes  <- r_nb * (1 - p_nb) / p_nb^2
+P_gt5_bayes     <- 1 - pnbinom(5, size = r_nb, prob = p_nb)
+P_gt5_classical <- 1 - ppois(5, lambda = lambda_mle)
+
+kable(data.frame(
+  Quantity = c("Predictive mean", "Predictive variance",
+               "P(Y11 > 5)"),
+  Bayesian = round(c(pred_mean_bayes, pred_var_bayes, P_gt5_bayes), 4),
+  Classical = round(c(lambda_mle, lambda_mle, P_gt5_classical), 4)
+), caption = "Bayesian vs classical predictive summaries")
+```
+
+```{r}
+#| fig-width: 7
+#| fig-height: 5
+#| echo: false
+#| fig-cap: "Predictive distribution for  $Y_{11}$"
+# Plot
+k_vals        <- 0:15
+pmf_bayes     <- dnbinom(k_vals, size = r_nb, prob = p_nb)
+pmf_classical <- dpois(k_vals, lambda = lambda_mle)
+
+par(mar = c(4, 4, 3, 1))
+barplot(rbind(pmf_bayes, pmf_classical),
+        beside = TRUE, names.arg = k_vals,
+        col = c("steelblue", "tomato"), border = NA,
+        xlab = expression(y[11]), ylab = "Probability")
+legend("topright",
+       legend = c(
+         sprintf("Bayesian NegBin(37, 11/12) mean=%.2f, var=%.2f",
+                 pred_mean_bayes, pred_var_bayes),
+         sprintf("Classical Poisson(3.5)  mean=var=%.2f", lambda_mle)
+       ),
+       fill = c("steelblue", "tomato"), border = NA, bty = "n", cex = 0.8)
+```
+
+```{=latex}
+\normalsize
+```
+
+\begin{conclusionbox}
+The Bayesian $P(Y_{11} > 5 \mid \mathbf{y}) \approx 0.1336$ is slightly lower than the classical $0.1424$, consistent with the prior pulling the mean below the MLE of $3.5$. Thus it is less probable to have higher values overall.
+\end{conclusionbox}
+
+\newpage
+# Exercise 3
+
+\begin{statementbox}[title={Custom Exotic Star Dataset Analysis}]
+We will generate a dataset of 163 stars drawn from a spectroscopic survey, classified into five 
+spectral categories: O, B, A, F, and G, ordered from hottest to coolest surface temperature. 
+For each star, the binary response variable indicates whether the star exhibits exotic behavior 
+(e.g. anomalous emission, pulsar candidacy, or unusual spectral activity). \\
+
+The dataset contains 20 type-O stars, 35 type-B, 40 type-A, 38 type-F, and 30 type-G stars, with observed exotic rates decreasing from class O down to class G. That clear 
+decreasing trend in the probability of exotic behavior is observed as surface temperature decreases, 
+which is physically motivated by the fact that hotter, more massive stars undergo more extreme internal 
+processes. The explanatory variable is therefore the spectral class, a categorical variable with 
+5 categories, and the response variable follows a Binomial distribution. \\
+
+For the type-O class specifically, we assume that a previous independent survey observed 6 exotic 
+stars out of 15, and we incorporate this historical information into an informative $\text{Beta}(7, 10)$ 
+prior for the corresponding success probability $\theta_O$, while all remaining classes receive a 
+non-informative $\text{Beta}(1, 1)$ prior.
+\end{statementbox}
+
+For each spectral class $k \in \{O, B, A, F, G\}$, let $y_k$ denote the number of exotic stars
+observed out of $n_k$ total stars. We model\footnote{Of course, here Binomial is selected due to the data's target variable being binary(0,1; success or failure)}:
+
+$$y_k \mid \theta_k \sim \text{Binomial}(n_k,\, \theta_k), \qquad k = 1,\ldots,5$$
+
+where $\theta_k \in (0,1)$ is the unknown probability of a star in class $k$ being exotic.
+
+\begin{defbox}{Prior Distributions}
+The prior distributions are chosen as follows. For class O, we have historical data from a
+past experiment (6 exotic out of 15), which we encode as an informative Beta prior. For all
+other classes, we use a flat non-informative prior:
+$$
+\theta_O \sim \text{Beta}(7,\,10), \qquad \theta_k \sim \text{Beta}(1,\,1) \text{ for } k \in \{B, A, F, G\}.
+$$
+The $\text{Beta}(7,10)$ prior has mean $7/17 = 0.412$ and encodes the belief from the past
+experiment that roughly $40\%$ of type-O stars are exotic. The $\text{Beta}(1,1)$ is the
+uniform distribution on $(0,1)$, conveying no prior preference for any value of $\theta_k$.
+\end{defbox}
+\newpage
+Since the Beta distribution is conjugate to the Binomial likelihood(that is also why we chose Betas as priors), the posterior distributions are available in closed form:
+
+$$\theta_k \mid y_k \sim \text{Beta}(\alpha_k + y_k,\; \beta_k + n_k - y_k)$$
+
+where $(\alpha_k, \beta_k)$ are the prior hyperparameters. Explicitly:
+
+$$
+\theta_O \mid y_O \sim \text{Beta}(7 + y_O,\; 10 + n_O - y_O), \qquad
+\theta_k \mid y_k \sim \text{Beta}(1 + y_k,\; 1 + n_k - y_k) \text{ for } k \neq O.
+$$
+
+We first load the dataset and compute group-level summaries. 
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-data
+#| echo: true
+
+# We actually generate the dataset with the same seed every time
+# Since there is no astrophysical dataset this short.
+set.seed(42)
+is_exotic <- c(
+  rbinom(20, 1, 0.45),   # Class O
+  rbinom(35, 1, 0.25),   # Class B
+  rbinom(40, 1, 0.15),   # Class A
+  rbinom(38, 1, 0.08),   # Class F
+  rbinom(30, 1, 0.05)    # Class G
+)
+spectral_class <- factor(
+  rep(c("O","B","A","F","G"), c(20,35,40,38,30)),
+  levels = c("O","B","A","F","G")
+)
+dat <- data.frame(spectral_class = spectral_class, 
+                  is_exotic = is_exotic)
+# Group-level aggregates used throughout
+groups <- c("O","B","A","F","G")
+y_vec  <- as.integer(tapply(dat$is_exotic, dat$spectral_class,
+                            sum)[groups])
+n_vec  <- as.integer(tapply(dat$is_exotic, dat$spectral_class,
+                            length)[groups])
+library(knitr)
+kable(
+  data.frame(
+    `Spectral Class` = groups,
+    `n (total)`      = n_vec,
+    `y (exotic)`     = y_vec,
+    `p-hat`          = round(y_vec / n_vec, 3),
+    check.names      = FALSE
+  ),
+  caption = "Observed data by spectral class"
+)
+```
+
+```{=latex}
+\normalsize
+```
+
+The observed exotic rates show a clear decreasing trend with spectral class, from
+$\hat{p}_O = 0.600$ for the hottest type-O stars down to $\hat{p}_G = 0.000$ for the
+coolest type-G stars. Type-O stars are by far the most likely to exhibit exotic behavior,
+while classes F and G show very low or zero exotic activity. The total sample size is $N = 163$ 
+stars across the five groups.
+
+We use JAGS to sample from the posterior distributions of all five $\theta_k$ parameters 
+and we are going to apply a 2000 sample burn-in followed by 10000 iterations, in 3 independent
+chains, giving $3 \times 10000 = 30000$ posterior samples per $\theta_k$.
+
+\begin{remarkbox}
+Since only $\theta_O$ carries an informative prior with mean $7/17 = 0.412$, which is below
+the observed $\hat{p}_O = 0.600$, we expect its posterior mean to be pulled downward
+away from the raw estimate. All other classes have flat $\text{Beta}(1,1)$ priors and
+are therefore expected to have posterior means very close to their observed $\hat{p}_k$.
+\end{remarkbox}
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-jags
+#| echo: true
+#| message: false
+#| warning: false
+#| results: hide
+
+suppressPackageStartupMessages(library(R2jags))
+
+
+jags_data <- list(y = y_vec, n = n_vec, K = 5)
+
+
+jags_inits  <- function() list(theta = rep(0.3, 5))
+
+jags_params <- c("theta")
+
+
+# Model: Beta-Binomial with mixed priors
+# theta[1] = class O  -> informative Beta(7, 10)
+# theta[2:5]          -> non-informative Beta(1, 1)
+jags_model <- "
+model {
+  for (k in 1:K) {
+    y[k] ~ dbin(theta[k], n[k])
+  }
+  theta[1] ~ dbeta(7, 10)
+  for (k in 2:K) {
+    theta[k] ~ dbeta(1, 1)
+  }
+}
+"
+
+model_file <- file.path(tempdir(), "model_ex3.txt")
+
+writeLines(jags_model, model_file)
+
+fit3 <- jags(
+  data               = jags_data,
+  inits              = jags_inits,
+  parameters.to.save = jags_params,
+  model.file         = model_file,
+  n.chains           = 3,
+  n.iter             = 12000,
+  n.burnin           = 2000,
+  n.thin             = 1
+)
+```
+
+```{=latex}
+\normalsize
+```
+
+
+
+Before interpreting the results we assess convergence to ensure the posterior samples
+are reliable. We use three complementary diagnostics.\footnote{Note that, the diagnostics are identical to the ones we used earlier.}
+
+
+First, trace plots to show the
+sampled values of each $\theta_k$ across iterations for all 3 chains. Well-mixed chains
+should overlap and show no trending or drifting, producing the characteristic
+``hairy caterpillar'' pattern. 
+
+
+
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-convergence
+#| echo: true
+#| fig-width: 8
+#| fig-height: 6
+#| fig-cap: "Trace plots (left) and posterior density estimates (right) for all five $\\theta_k$ parameters."
+
+library(coda)
+mcmc3 <- as.mcmc(fit3)
+
+# Name by matching JAGS names
+class_labels <- c("theta[O]","theta[B]","theta[A]","theta[F]",
+                  "theta[G]")
+
+for (i in seq_along(mcmc3)) {
+  old_names <- colnames(mcmc3[[i]])
+  for (j in 1:5) {
+    old_names[old_names == paste0("theta[", j, "]")] <- class_labels[j]
+  }
+  colnames(mcmc3[[i]]) <- old_names
+}
+
+par(mfrow = c(5, 2), mar = c(3, 3, 2, 1))
+for (k in class_labels) {
+  plot(mcmc3[, k], main = k, auto.layout = FALSE)
+}
+```
+```{=latex}
+\normalsize
+```
+
+All five trace plots display the characteristic stationary, well-mixed ``hairy caterpillar''
+pattern across all 3 chains (black, red, green), with no trending, drifting, or getting stuck
+at any point. This confirms that the burn-in of 2000 iterations was sufficient and all chains
+converged to the same stationary posterior distribution. 
+
+Notably, $\theta_O$ is centered around $\approx 0.51$,
+visibly pulled below the observed $\hat{p}_O = 0.600$ toward the informative prior mean of
+$0.4$, confirming the prior is doing its job. The remaining parameters are centered close to
+their observed rates: $\theta_B \approx 0.38$, $\theta_A \approx 0.09$, $\theta_F \approx 0.10$,
+and $\theta_G \approx 0.03$, all consistent with their flat $\text{Beta}(1,1)$ priors exerting
+negligible influence on the posterior.
+
+\newpage 
+We move on to the Gelman--Rubin statistic $\hat{R}$ compares
+the variance within chains to the variance between chains; values close to $1$ indicate
+that all chains have converged to the same distribution, with $\hat{R} < 1.1$ being the
+standard threshold.
+
+```{=latex}
+\small
+```
+```{r}
+#| label: ex3-gelman
+#| echo: true
+
+gelman3    <- gelman.diag(mcmc3[, class_labels])
+
+
+gelman_df3 <- data.frame(
+  Parameter = class_labels,
+  Point_Est = round(gelman3$psrf[, 1], 4),
+  Upper_CI  = round(gelman3$psrf[, 2], 4),
+  row.names = NULL
+)
+
+
+kable(gelman_df3, caption = "Gelman–Rubin convergence 
+      diagnostic ($\\hat{R}$)")
+```
+
+```{=latex}
+\normalsize
+```
+
+All $\hat{R}$ values are extremely close to 1, well below the standard threshold of $1.1$,
+confirming that all 3 chains have converged to the same stationary distribution.
+
+Lastly, the autocorrelation plots.
+
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-autocorr
+#| echo: true
+#| fig-width: 8
+#| fig-height: 6
+#| fig-cap: "Autocorrelation plots for all five parameters from chain 1."
+
+par(mfrow = c(5, 1), mar = c(3, 4, 2, 1))
+
+for (k in class_labels) {
+  autocorr.plot(mcmc3[[1]][, k], main = k, auto.layout = FALSE)
+  
+}
+
+```
+
+```{=latex}
+\normalsize
+```
+
+All five parameters show a mild autocorrelation at lag 1, ranging from approximately
+$0.2$--$0.3$ for $\theta_O$, $\theta_B$, $\theta_A$, and $\theta_F$, before dropping
+to zero by lag 2. $\theta_G$ shows the most persistent autocorrelation, with a lag-1
+value of approximately $0.6$ that gradually decays to zero by around lag 6--7. This is
+expected given that its posterior is concentrated very close to zero, as all 30 type-G
+stars were non-exotic, leaving the chain less room to explore. Overall the autocorrelation
+structure is mild and short-lived for all parameters, indicating that the 30000 posterior
+samples are close to independent and no convergence issues are present.
+
+Given the short-lived autocorrelation structure across all parameters, no thinning
+is required, discarding samples would reduce the effective sample size without
+any meaningful reduction in autocorrelation.
+
+We can now confidently see the full results from the posteriors.
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-posterior-summary
+#| echo: true
+bayes3 <- fit3$BUGSoutput$summary[paste0("theta[", 1:5, "]"), ]
+kable(
+  data.frame(
+    Parameter  = class_labels,
+    Mean       = round(bayes3[, "mean"],  4),
+    SD         = round(bayes3[, "sd"],    4),
+    `2.5%`     = round(bayes3[, "2.5%"], 4),
+    `97.5%`    = round(bayes3[, "97.5%"],4),
+    check.names = FALSE,
+    row.names     = NULL
+  ),
+  
+  caption = "Posterior summary for $\\theta_k$ — all 
+  five spectral classes")
+```
+
+```{=latex}
+\normalsize
+```
+
+We compare the Bayesian posterior means with the observed rates, which in this saturated
+binomial model are equivalent to the classical estimates\footnote{That's literally all classical statistics does for this problem count successes and divide by total, which we already did when generating the data.}.
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-comparison
+#| echo: true
+
+kable(
+  data.frame(
+    Class            = groups,
+    
+    `Observed p-hat` = round(y_vec / n_vec, 4),
+    
+    `Classical SD`   = round(sqrt((y_vec/n_vec) * (1 
+                        - y_vec/n_vec) / n_vec), 4),
+    
+    `Bayesian Mean`  = round(bayes3[, "mean"], 4),
+    
+    `Bayesian SD`    = round(bayes3[, "sd"],   4),
+    
+    check.names      = FALSE,
+    
+    row.names     = NULL
+  ),
+  caption = "Observed rates vs Bayesian posterior means"
+)
+
+```
+
+```{=latex}
+\normalsize
+```
+
+Since the Beta--Binomial model is conjugate, the posterior distributions are available
+in closed form without any MCMC sampling. Specifically, for each spectral class $k$:
+$$
+\theta_k \mid y_k \;\sim\; \text{Beta}(\alpha_k + y_k,\; \beta_k + n_k - y_k),
+$$
+where $(\alpha_k, \beta_k)$ are the prior hyperparameters. We can therefore plot the
+exact posterior densities by evaluating the Beta density on a fine grid, using the
+updated parameters $(\alpha_k + y_k,\; \beta_k + n_k - y_k)$ directly.
+
+We plot these five posterior densities together and then make a forest plot for comparisons, placing the Bayesian
+posterior mean with its $95\%$ credible interval alongside the classical MLE with its
+$95\%$ confidence interval for every class.
+
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-posteriors-plot
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4
+#| fig-cap: "Posterior Beta distributions for $\\theta_k$ across all spectral classes.
+#|           The dashed vertical lines mark the observed $\\hat{p}_k$."
+cols       <- c("firebrick","darkorange","steelblue","seagreen","mediumpurple")
+alpha_prior <- c(7, 1, 1, 1, 1)
+beta_prior  <- c(10, 1, 1, 1, 1)
+alpha_post  <- alpha_prior + y_vec
+beta_post   <- beta_prior  + (n_vec - y_vec)
+theta_grid  <- seq(0, 1, length.out = 500)
+par(mar = c(4, 4, 3, 1))
+plot(NULL, xlim = c(0, 1), ylim = c(0, 20),
+     xlab = expression(theta), ylab = "Density",
+     main = "Posterior Distributions by Spectral Class")
+for (i in seq_along(groups)) {
+  dens <- dbeta(theta_grid, alpha_post[i], beta_post[i])
+  lines(theta_grid, dens, col = cols[i], lwd = 2)
+  abline(v = y_vec[i] / n_vec[i], col = cols[i], lty = 2, lwd = 1)
+}
+legend("topright",
+       legend = paste0("Class ", groups,
+                       " (Beta(", alpha_post, ",", beta_post, "))"),
+       col    = cols, lwd = 2, bty = "n", cex = 0.8)
+```
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex3-forest
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4
+#| fig-cap: "Forest plot comparing Bayesian posterior means (95\\% credible intervals, blue) against classical MLE estimates (95\\% confidence intervals, red) for each spectral class."
+
+# Classical MLE estimates and Wald 95% CIs
+p_hat   <- y_vec / n_vec
+se_hat  <- sqrt(p_hat * (1 - p_hat) / n_vec)
+ci_low_cl  <- pmax(0, p_hat - 1.96 * se_hat)
+ci_high_cl <- pmin(1, p_hat + 1.96 * se_hat)
+
+# Bayesian posterior means and 95% credible intervals
+bayes_mean <- bayes3[, "mean"]
+ci_low_bay <- bayes3[, "2.5%"]
+ci_high_bay <- bayes3[, "97.5%"]
+
+# Plot setup
+k     <- length(groups)
+y_pos <- 1:k          # vertical positions for each class
+offset <- 0.15        # vertical offset between Bayes and Classical points
+
+par(mar = c(4, 5, 3, 2))
+plot(NULL,
+     xlim = c(0, 1), ylim = c(0.5, k + 0.5),
+     xlab = expression(theta[k]),
+     ylab = "",
+     main = "Bayesian vs Classical Estimates by Spectral Class",
+     yaxt = "n")
+axis(2, at = y_pos, labels = paste0("Class ", groups), las = 1)
+abline(v = seq(0, 1, by = 0.1), col = "grey90", lty = 1)
+
+for (i in 1:k) {
+  # Classical: points and CI slightly above
+  points(p_hat[i], y_pos[i] + offset, pch = 18, col = "firebrick", cex = 1.4)
+  lines(c(ci_low_cl[i], ci_high_cl[i]),
+        c(y_pos[i] + offset, y_pos[i] + offset),
+        col = "firebrick", lwd = 2)
+
+  # Bayesian: points and CI slightly below
+  points(bayes_mean[i], y_pos[i] - offset, pch = 16, col = "steelblue", cex = 1.4)
+  lines(c(ci_low_bay[i], ci_high_bay[i]),
+        c(y_pos[i] - offset, y_pos[i] - offset),
+        col = "steelblue", lwd = 2)
+}
+
+# Prior mean reference line for class O only
+abline(v = 6/15, col = "darkgreen", lty = 2, lwd = 1.5)
+text(6/15, k + 0.35, "Prior mean\n(Class O)",
+     col = "darkgreen", cex = 0.7, adj = 0.5)
+
+legend("topright",
+       legend = c("Classical MLE (95% CI)", "Bayesian posterior (95% CrI)"),
+       col    = c("firebrick", "steelblue"),
+       pch    = c(18, 16), lwd = 2, bty = "n")
+```
+
+```{=latex}
+\normalsize
+```
+
+\begin{conclusionbox}
+
+\textbf{Class O} is the most instructive case. The informative Beta$(7,10)$ prior,
+encoding the historical experiment of 6 exotic stars out of 15, pulls the posterior
+mean down to $0.5124$ from the observed MLE of $0.600$. This shrinkage is clearly
+visible in both Figure 9 and in Figure 10, where the blue Bayesian point lies
+noticeably to the left of the red classical point. At the same time, the posterior
+credible interval ($0.3535$, $0.6688$) is narrower than the classical confidence
+interval, reflecting the additional information contributed by the prior.
+
+\textbf{Classes B, A, and F} carry flat Beta$(1,1)$ priors, so the posterior is
+driven entirely by the data. The Bayesian and classical estimates are nearly identical, with
+credible intervals and confidence intervals of comparable width, as expected
+when the prior is flat and the sample sizes are moderate.
+
+\textbf{Class G} is a special limiting case. All 30 type-G stars were non-exotic,
+so the MLE is exactly $\hat{p}_G = 0$ and the Wald formula collapses to a
+degenerate point interval of zero width, visible in Figure 10 as the red point with
+no error bar. The Bayesian approach avoids this entirely: the Beta$(1,1)$ prior
+prevents the posterior from collapsing to a point mass at zero, yielding a proper
+posterior Beta$(1, 31)$ with mean $0.0316$ and a finite credible interval
+$(0.0008,\; 0.1144)$. This is one of the clearest practical advantages of Bayesian
+inference over classical methods in small or extreme samples.
+
+\textbf{Overall}, the Bayesian model correctly captures the physically motivated
+decreasing trend in exotic activity from class O down to class G, incorporates
+historical information where available, and produces well-behaved uncertainty
+estimates even in the degenerate case where classical inference breaks down.
+\end{conclusionbox}
+
+\newpage
+
+# Exercise 4
+
+\begin{statementbox}[title={Metropolis--Hastings for the Jeffreys Prior}]
+We return to the Poisson server-error problem of Exercise 2. Under the alternative hypothesis
+$H_1 : \lambda \neq 2$, we are going to derive the Jeffreys prior for $\lambda$ analytically, then implement
+a Metropolis--Hastings (MH) algorithm in R to simulate 20\,000 draws from the resulting posterior.
+We will use a Normal proposal distribution centered at the current chain value with a variance tuned to
+achieve approximately $25\%$ acceptance.
+\end{statementbox}
+
+\begin{defbox}{Jeffreys Prior}
+The Jeffreys prior is the unique (up to normalization) prior that is invariant under
+re-parametrisation of the model. It is defined as
+$$
+p_J(\lambda) \propto \sqrt{I(\lambda)},
+$$
+where $I(\lambda)$ is the Fisher information:
+$$
+I(\lambda) = -\mathbb{E}\!\left[\frac{\partial^2 \log p(Y \mid \lambda)}{\partial \lambda^2}\right]
+$$
+\end{defbox}
+The likelihood for a single Poisson observation $Y$ is:\footnote{In this case a single Poisson observation refers to the amount of server lags in a single day, we could generalize this by assuming $n$ days worth of observations but since that would just follow a Poisson$(n\lambda)$, $n$ would just become part of the normalization constant and not really affect the posterior's kernel.} 
+$$ p(Y \mid \lambda) = \frac{e^{-\lambda}\lambda^{Y}}{Y!}$$
+
+Thus, the log-likelihood is
+
+$$
+\log p(Y \mid \lambda) = -\lambda + Y \log \lambda - \log(Y!)
+$$
+
+Differentiating twice with respect to $\lambda$:
+
+$$
+\frac{\partial \log p}{\partial \lambda} = -1 + \frac{Y}{\lambda}, \qquad
+\frac{\partial^2 \log p}{\partial \lambda^2} = -\frac{Y}{\lambda^2}.
+$$
+
+Taking the expectation (recalling $\mathbb{E}[Y] = \lambda$ for Poisson, and $\lambda$ is just a constant):
+
+$$
+I(\lambda) = -\mathbb{E}\!\left[-\frac{Y}{\lambda^2}\right] = \frac{\mathbb{E}[Y]}{\lambda^2} = \frac{\lambda}{\lambda^2} = \frac{1}{\lambda}.
+$$
+
+\begin{resultbox}
+The Jeffreys prior for the Poisson rate parameter is therefore
+$$
+\boxed{p_J(\lambda) \propto \sqrt{\frac{1}{\lambda}} = \lambda^{-1/2}, \qquad \lambda > 0.}
+$$
+This is an improper prior (it does not integrate to a finite constant over $(0,\infty)$), but it
+yields a proper posterior as shown below, so it remains valid for inference.
+\end{resultbox}
+
+The sufficient statistic is again $T = \sum_{i=1}^{10} Y_i = 35$, with
+$T \mid \lambda \sim \text{Poisson}(10\lambda)$. Combining the likelihood with the Jeffreys prior to get the posterior:
+
+$$
+p(\lambda \mid T) \;\propto\; \underbrace{e^{-10\lambda}(10\lambda)^{35}}_{\text{likelihood}}
+\times \underbrace{\lambda^{-1/2}}_{\text{Jeffreys prior}}
+\;=\; e^{-10\lambda}\,\lambda^{35.5 - 1}.
+$$
+
+This is the kernel of a $\text{Gamma}(35.5,\; 10)$ distribution, confirming propriety:
+
+$$
+\lambda \mid T = 35 \;\sim\; \text{Gamma}(35.5,\; 10).
+$$
+
+The posterior mean is $35.5/10 = 3.55$ and the posterior standard deviation is
+$\sqrt{35.5}/10 \approx 0.596$.
+
+\begin{remarkbox}
+The Jeffreys posterior mean ($3.55$) is very close to the MLE $\hat\lambda = 3.5$,
+as expected for a non-informative prior with $n = 10$ observations. It is also slightly higher than the Gamma$(2,1)$ posterior mean because the Gamma$(2,1)$ prior was centered at $2$, actively pulling the posterior toward the null value, whereas the Jeffreys prior has no such concentration and therefore lets the data dominate more freely.
+\end{remarkbox}
+
+We implement the Metropolis--Hastings algorithm using a symmetric Normal proposal
+$q(\lambda^* \mid \lambda^{(t)}) = N(\lambda^{(t)},\; \sigma_{\text{prop}}^2)$.
+
+At each iteration $t$:
+
+\begin{enumerate}
+  \item Propose $\lambda^* \sim N(\lambda^{(t)},\; \sigma_{\text{prop}}^2)$.
+  \item If $\lambda^* \leq 0$, reject immediately (the target has support on $(0,\infty)$).
+  \item Otherwise compute the log acceptance ratio
+  $$
+  \log r = \log p(\lambda^* \mid T) - \log p(\lambda^{(t)} \mid T)
+         = \left(T - \tfrac{1}{2}\right)\log\!\frac{\lambda^*}{\lambda^{(t)}}
+           - n\!\left(\lambda^* - \lambda^{(t)}\right).
+  $$
+  \item Set $\lambda^{(t+1)} = \lambda^*$ with probability $\min(1,\, e^{\log r})$,
+        otherwise $\lambda^{(t+1)} = \lambda^{(t)}$.
+\end{enumerate}
+
+\begin{remarkbox}
+Because the Normal proposal is symmetric
+($q(\lambda^* \mid \lambda) = q(\lambda \mid \lambda^*)$),
+the proposal ratio cancels in the acceptance probability, leaving only the target ratio.
+This is the original Metropolis algorithm, a special case of MH.
+\end{remarkbox}
+
+We need to tune the variance of the proposed normal distribution in such a way that only 25\% of the proposed $\lambda$ are accepted. Here $\sigma_{\text{post}} \approx 0.596$,
+so we start with that and adjust until we succeed.
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-mh
+#| echo: true
+
+set.seed(444)
+
+n_iter   <- 20000
+T_obs    <- 35
+n_days   <- 10
+prop_sd  <- 2.8
+
+log_post_jeffreys <- function(lam) {
+  if (lam <= 0) return(-Inf)
+  (T_obs - 0.5) * log(lam) - n_days * lam
+}
+
+chain         <- numeric(n_iter)
+chain[1]      <- T_obs / n_days
+accept_count  <- 0
+
+for (i in 2:n_iter) {
+  lam_curr <- chain[i - 1]
+  lam_prop <- rnorm(1, mean = lam_curr, sd = prop_sd)
+  log_r <- log_post_jeffreys(lam_prop) - log_post_jeffreys(lam_curr)
+  if (log(runif(1)) < log_r) {
+    chain[i]     <- lam_prop
+    accept_count <- accept_count + 1
+  } else {
+    chain[i] <- lam_curr
+  }
+}
+accept_rate <- accept_count / (n_iter - 1)
+cat(sprintf("Acceptance rate: %.3f  (%.1f%%)\n",
+            accept_rate, 100 * accept_rate))
+```
+
+```{=latex}
+\normalsize
+```
+We ultimately increased $\sigma_{\text{prop}}$ to $2.8$ to achieve the target $25\%$
+acceptance rate. A larger proposal SD means candidates are drawn from a wider
+neighborhood around the current value, so they more frequently land in
+low-probability regions of the posterior and get rejected. This is intentional
+, as it prevents the chain from accepting nearly every proposal and taking steps
+so small that it barely explores the parameter space.
+
+Next, we apply the burn-in:
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-burnin
+#| echo: true
+post_mean_exact <- 35.5 / 10
+burn_in    <- 2000
+chain_post <- chain[(burn_in + 1):n_iter]
+n_post     <- length(chain_post)
+```
+
+```{=latex}
+\normalsize
+```
+
+We discard the first 2\,000 iterations as burn-in. The trace ergodic mean plots below show that
+the chain reaches stationarity well within the first $\sim 1500$ iterations given
+initialization at the MLE, so 2\,000 is conservative and more than sufficient.
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-trace
+#| echo: false
+#| fig-width: 10
+#| fig-height: 3.5
+#| fig-cap: "Trace plot for the full 20,000-iteration MH chain. The red dashed line marks the end of burn-in (iteration 2,000)."
+
+par(mar = c(4, 4, 3, 1))
+plot(1:n_iter, chain, type = "l", col = "steelblue", lwd = 0.4,
+     xlab = "Iteration", ylab = expression(lambda),
+     main = "Trace Plot — MH Chain (full 20,000 iterations)")
+abline(v = burn_in, col = "red", lty = 2, lwd = 2)
+legend("topright", legend = c("Chain", "End of burn-in"),
+       col = c("steelblue", "red"), lty = c(1, 2), lwd = c(1, 2), bty = "n")
+```
+
+```{=latex}
+\normalsize
+```
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-ergodic
+#| echo: false
+#| fig-width: 10
+#| fig-height: 3.5
+#| fig-cap: "Ergodic mean plot. The running mean converges rapidly to the exact posterior mean of 3.55 (red dashed line)."
+
+cum_mean <- cumsum(chain_post) / seq_along(chain_post)
+
+par(mar = c(4, 4, 3, 1))
+plot(seq_along(chain_post), cum_mean, type = "l", col = "steelblue", lwd = 1.5,
+     xlab = "Post-burn-in iteration", ylab = expression(bar(lambda)[t]),
+     main = "Ergodic Mean Plot")
+abline(h = post_mean_exact, col = "red", lty = 2, lwd = 2)
+legend("topright",
+       legend = c("Running mean",
+                  sprintf("Exact posterior mean = %.4f", post_mean_exact)),
+       col = c("steelblue", "red"), lty = c(1, 2), lwd = c(1.5, 2), bty = "n")
+```
+
+```{=latex}
+\normalsize
+```
+
+We also check if the amount of samples($20.000$) is sufficient, so once again we do that by doing autocorrelation plots and calculating the Effective Sample Size(ESS).
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-acf
+#| echo: true
+#| fig-width: 8
+#| fig-height: 4
+#| fig-cap: "Autocorrelation function of the post-burn-in MH chain up to lag 40."
+
+library(coda)
+mcmc_chain <- mcmc(chain_post)
+par(mar = c(4, 4, 3, 1))
+autocorr.plot(mcmc_chain,
+              main = expression("ACF — post-burn-in " * lambda * " chain"),
+              auto.layout = FALSE)
+```
+
+```{r}
+#| label: ex4-ess
+#| echo: true
+
+eff_n <- effectiveSize(mcmc_chain)
+cat(sprintf("Effective Sample Size (ESS): %.0f out of %d nominal draws\n",
+            eff_n, n_post))
+cat(sprintf("ESS ratio: %.3f\n", eff_n / n_post))
+```
+
+```{=latex}
+\normalsize
+```
+
+\begin{remarkbox}
+With a Normal random-walk proposal and $\sim 25\%$ acceptance, some positive autocorrelation
+at low lags is expected. The ACF decays to zero within $\sim$10-15 lags and the ESS is well
+above 1\,000, so no thinning is required.
+\end{remarkbox}
+
+With the diagnostics completed, we determine that the model works effectively, it doesn't get stuck or repeats itself, the burn-in is sufficient, the sample size is big enough and the entire space is mapped. Thus we present the descriptive summary table with confidence:
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-summary-table
+#| echo: true
+
+library(knitr)
+
+post_mean_exact <- 35.5 / 10
+post_sd_exact   <- sqrt(35.5) / 10
+post_med_exact  <- qgamma(0.5,   shape = 35.5, rate = 10)
+post_q025_exact <- qgamma(0.025, shape = 35.5, rate = 10)
+post_q975_exact <- qgamma(0.975, shape = 35.5, rate = 10)
+
+sim_mean   <- mean(chain_post)
+sim_sd     <- sd(chain_post)
+sim_median <- median(chain_post)
+sim_q025   <- quantile(chain_post, 0.025)
+sim_q975   <- quantile(chain_post, 0.975)
+
+kable(data.frame(
+  Quantity     = c("Mean", "SD", "Median",
+                   "2.5th percentile", "97.5th percentile"),
+  Exact_Gamma  = round(c(post_mean_exact, post_sd_exact, post_med_exact,
+                          post_q025_exact, post_q975_exact), 4),
+  MH_Simulated = round(c(sim_mean, sim_sd, sim_median,
+                          sim_q025, sim_q975), 4)
+), caption = "Descriptive summary: exact Gamma(35.5, 10) vs MH simulated values")
+```
+
+```{=latex}
+\normalsize
+```
+
+
+\newpage
+For some visualization of how the MCMC algorithm performed, we compare the histogram of the generated values to the actual posterior we calculated analytically.
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-histogram
+#| echo: false
+#| fig-width: 8
+#| fig-height: 4.5
+#| fig-cap: "Histogram of the 18,000 post-burn-in MH draws overlaid with the exact Gamma(35.5, 10) density (red). Green dashed lines mark the 95% credible interval."
+
+lambda_grid <- seq(1.5, 6.0, length.out = 500)
+exact_dens  <- dgamma(lambda_grid, shape = 35.5, rate = 10)
+
+par(mar = c(4, 4, 3, 1))
+hist(chain_post, breaks = 60, freq = FALSE,
+     col = "lightsteelblue", border = "white",
+     xlab = expression(lambda),
+     main = expression("Posterior of " * lambda * " under Jeffreys prior"))
+lines(lambda_grid, exact_dens, col = "red", lwd = 2.5)
+abline(v = c(sim_q025, sim_q975), col = "darkgreen", lty = 2, lwd = 2)
+legend("topright",
+       legend = c("MH draws", "Exact Gamma(35.5, 10)", "95% credible interval"),
+       fill   = c("lightsteelblue", NA, NA),
+       lty    = c(NA, 1, 2), col = c(NA, "red", "darkgreen"),
+       lwd    = c(NA, 2.5, 2), border = c("grey70", NA, NA), bty = "n")
+```
+
+```{=latex}
+\normalsize
+```
+
+Finally using our generated values we can calculate the 95\% credible intervals(CIs) and compare them to the fully analytical ones.
+
+```{=latex}
+\small
+```
+
+```{r}
+#| label: ex4-ci
+#| echo: true
+
+ci_sim   <- quantile(chain_post, c(0.025, 0.975))
+
+ci_exact <- qgamma(c(0.025, 0.975), shape = 35.5, rate = 10)
+
+kable(data.frame(
+  Method  = c("MH simulation", "Exact Gamma(35.5, 10)"),
+  Lower   = round(c(ci_sim[1],   ci_exact[1]), 4),
+  Upper   = round(c(ci_sim[2],   ci_exact[2]), 4),
+  Width   = round(c(diff(ci_sim), diff(ci_exact)), 4)
+), 
+caption = "Symmetric 95\\% credible interval for $\\lambda$")
+```
+
+```{=latex}
+\normalsize
+```
+
+\begin{conclusionbox}
+\textbf{Credible interval.}
+The symmetric $95\%$ credible interval for $\lambda$ under the Jeffreys prior is
+approximately $\lambda \in (2.48,\; 4.70)$ (exact analytical values; the MH interval
+agrees to within Monte Carlo error).
+
+\textbf{Interpretation.}
+Given the observed data ($T = 35$ errors in $n = 10$ days) and the Jeffreys
+non-informative prior, there is a $95\%$ posterior probability that the true
+daily error rate $\lambda$ lies between approximately $2.48$ and $4.70$.
+Crucially, the null value $\lambda_0 = 2$ lies \emph{below} this entire interval,
+providing further confirmation, which is also consistent with the Bayes Factor analysis
+of Exercise 2, that the data strongly favor a higher error rate than $2$ per day.
+
+\textbf{Comparison with Exercise 2.}
+The Gamma$(2,1)$ prior gave a posterior Gamma$(37,11)$ with mean $\approx 3.36$ and
+$95\%$ CI $\approx (2.41, 4.44)$. The Jeffreys prior yields a slightly higher and wider
+posterior (mean $3.55$, CI $\approx (2.48, 4.81)$), because it places no prior mass
+near $\lambda = 2$ and lets the data speak more freely.
+
+\textbf{Algorithm convergence.}
+The trace plot shows a stationary, well-mixed chain with no drift. The ergodic mean
+converges rapidly to the exact posterior mean. The ACF decays to zero within $\sim$10-15
+lags and the ESS is well above 1\,000. All diagnostics confirm that the MH chain
+provides a reliable sample from the target posterior.
+\end{conclusionbox}
